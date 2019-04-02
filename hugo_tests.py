@@ -91,7 +91,7 @@ def train_model(data, model, criterion = nn.MSELoss(), param = {"mini_batch_size
 				elif(label_target == "target"):
 					target = data.train_target_hot
 				else:
-					if(verbose):print("Error: " + label_target + " is not a valide option... Chose: label_target or class")
+					if(verbose):print("Error: " + label_target + " is not a valid option... Choose: label_target or class")
 				# Compute Loss for hot points labels
 				loss1 = criterion(output[:,0,:],target.narrow(0, b, mini_batch_size)[:,0,:])
 				loss2 = criterion(output[:,1,:],target.narrow(0, b, mini_batch_size)[:,1,:])
@@ -101,12 +101,12 @@ def train_model(data, model, criterion = nn.MSELoss(), param = {"mini_batch_size
 				elif(label_target == "target"):
 					target = data.train_target
 				else:
-					if(verbose):print("Error: " + label_target + " is not a valide option... Chose: label_target or class")
+					if(verbose):print("Error: " + label_target + " is not a valid option... Choose: label_target or class")
 				# Compute Loss
 				loss1 = criterion(output[:,0,:],target.narrow(0, b, mini_batch_size)[:,0])
 				loss2 = criterion(output[:,1,:],target.narrow(0, b, mini_batch_size)[:,1])
 			else:
-				if(verbose): print("Error: your criterion is not valide... Chose: nn.MSELoss or nn.CrossEntropyLoss")
+				if(verbose): print("Error: your criterion is not valid... Choose: nn.MSELoss or nn.CrossEntropyLoss")
 			loss = loss1 + loss2
 			model.zero_grad()
 			loss.backward()
