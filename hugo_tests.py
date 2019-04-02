@@ -143,7 +143,7 @@ def compute_nb_errors(data, model, param = {"mini_batch_size" : 100,"label_targe
 				if target.data[b + k]!= predicted_classes[k].long():
 					nb_errors = nb_errors + 1
 		else:
-			if(verbose):print("Error: " + label_target + " is not a valide option... Chose: label_target or class")
+			if(verbose):print("Error: " + label_target + " is not a valid option... Choose: label_target or class")
 	if(verbose) : print('Test error Net nh={:d} {:0.2f}%% {:d}/{:d}'.format(model.nb_hidden,
 																  (100 * nb_errors) /(data.nb * nb_target),
 																  nb_errors, (data.nb * nb_target)))

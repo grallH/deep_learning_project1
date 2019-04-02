@@ -36,37 +36,25 @@ from torch.nn import functional as F
 import dlc_practical_prologue as prologue
 
 class Net(nn.Module):
-    def __init__(self, nbhidden):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=5)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=5)
-        self.fc1 = nn.Linear(256, nbhidden)
-        self.fc2 = nn.Linear(nbhidden, 10)
+	def __init__(self, nb_hidden,nb_output):
+		super(Net, self).__init__()
+		self.nb_hidden = nb_hidden
+		self.nb_output = nb_output
+		self.conv1 = nn.Conv2d(1, 64, kernel_size=(3,3))
+		self.conv2 = nn.Conv2d(64, 128, kernel_size=(3,3))
+		self.conv3 = nn.Conv2d(128, 256, kernel_size=(2,2))
+		self.fc1 = nn.Linear(256, self.nb_hidden)
+		self.fc2 = nn.Linear(self.nb_hidden, self.nb_output)
 
-    def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), kernel_size=3, stride=3))
-        x = F.relu(F.max_pool2d(self.conv2(x), kernel_size=2, stride=2))
-        x = F.relu(self.fc1(x.view(-1, 256)))
-        x = self.fc2(x)
-        return x
-        
-class Net2(nn.Module):
-    def __init__(self, nbhidden):
-        super(Net2, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=5)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=5)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3)
-        self.fc1 = nn.Linear(512, nbhidden)
-        self.fc2 = nn.Linear(nbhidden, 10)
-
-    def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), kernel_size=2, stride=2))
-        x = F.relu(F.max_pool2d(self.conv2(x), kernel_size=2, stride=2))
-        x = F.relu(self.conv3(x))
-        x = F.relu(self.fc1(x.view(-1, 512)))
-        x = self.fc2(x)
-        return x
-
+	def forward(self, x):
+		
+		#print('[step0] : {0}'.format(x.size()))
+		x = F.relu(F.max_pool3d(self.conv1(x), kernel_size=(1,3,3), stride=(1,3,3)))
+		#print('[step1] : {0}'.format(x.size()))
+		x = F.relu(F.max_pool3d(self.conv2(x), kernel_size=(1,1,1), stride=(1,1,1)))
+		#print('[step2] : {0}'.format(x.size()))
+		x = F.relu(F.max_pool3d(self.conv3(x), kernel_size=(1,1,1), stride=(1,1,1)))
+		return x
 
 def train_model(model, train_input, train_target, mini_batch_size):
 	train_input, train_target = Variable(train_input), Variable(train_target)
@@ -92,20 +80,40 @@ def compute_nb_errors(model, input, target, mini_batch_size):
 		output = model(input.narrow(0, b, mini_batch_size))
 		res[torch.arange(b,b+mini_batch_size,dtype=torch.int64),output.argmax(1)] = 1
 	return (target != res).sum()/2
-		
-train_input, train_target, test_input, test_target = \
-    prologue.load_data(one_hot_labels = True, normalize = True, flatten = False)
 
+def pairs_to_one_hot(input,class_label):
+	nb = train_class.unique().size(0)
+	class_1h = torch.zeros(train_target.size(0), 2, nb)
+	class_1h[:,0,:] = prologue.convert_to_one_hot_labels(input, class_label[:,0])
+	class_1h[:,1,:] = prologue.convert_to_one_hot_labels(input, class_label[:,1])
 
 if __name__ == "__main__":
 	mini_batch_size = 100
+	m = 1000;
+	label = "target"
+	#label = "class"
+	nb_class = 10
+	nb_hidden = 200
+
 	
 	train_input, train_target, train_class, test_input, test_target, test_class = \
-		prologue.generate_pair_sets(self.nb)
+		prologue.generate_pair_sets(m)
 	
-	train_target = prologue.convert_to_one_hot_labels(train_input, train_target)
-	train_class[:,0] = 
+	# Normalize input
+	train_input.sub_(train_input.mean()).div_(train_input.std())
+	test_input.sub_(test_input.mean()).div_(test_input.std())
 	
+	# Select labels and convert to one hot labels
+	if label == "target":
+		train_label = prologue.convert_to_one_hot_labels(train_input, train_target)
+		test_label = prologue.convert_to_one_hot_labels(test_input, test_target)
+	elif label == "class":
+		train_label = pairs_to_one_hot(train_input, train_class)
+		test_label = pairs_to_one_hot(test_inout, test_class)
+		
+	
+	model = Net_conv3d(nb_hidden,nb_class)
+	output = model(train_input)
 
 	"""for k,nhidden in enumerate(hidden):
 		for j in range(0,n_iter):
