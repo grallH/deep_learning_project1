@@ -118,8 +118,7 @@ def train_model(data, model, criterion = nn.MSELoss(), param = {"mini_batch_size
 					#print("[output] : {} [target] : {}".format(output.size(),target.size()))
 					loss = criterion(output,target.narrow(0, b, mini_batch_size))
 				else:
-					if(verbose):print("Error: " + label_target + " is not a valide option... Chose: label_target or class")
-				
+					if(verbose):print("Error: " + label_target + " is not a valid option... Chose: label_target or class")
 			elif(type(criterion) is nn.CrossEntropyLoss):
 				if(label_target == "class"):
 					target = data.train_class
@@ -132,10 +131,10 @@ def train_model(data, model, criterion = nn.MSELoss(), param = {"mini_batch_size
 					#print("[output] : {} [target] : {}".format(output.size(),target.size()))
 					loss = criterion(output,target.narrow(0, b, mini_batch_size))
 				else:
-					if(verbose):print("Error: " + label_target + " is not a valide option... Chose: label_target or class")
+					if(verbose):print("Error: " + label_target + " is not a valid option... Choose: label_target or class")
 
 			else:
-				if(verbose): print("Error: your criterion is not valide... Chose: nn.MSELoss or nn.CrossEntropyLoss")
+				if(verbose): print("Error: your criterion is not valid... Chose: nn.MSELoss or nn.CrossEntropyLoss")
 			model.zero_grad()
 			loss.backward()
 			sum_loss = sum_loss + loss.item()
@@ -171,7 +170,7 @@ def compute_nb_errors(data, model, param = {"mini_batch_size" : 100,"label_targe
 				if target.data[b + k]!= predicted_classes[k].long():
 					nb_errors = nb_errors + 1
 		else:
-			if(verbose):print("Error: " + label_target + " is not a valide option... Chose: label_target or class")
+			if(verbose):print("Error: " + label_target + " is not a valid option... Choose: label_target or class")
 	if(verbose) : print('Test error Net :{:0.2f}%% {:d}/{:d}'.format((100 * nb_errors) /(data.nb * nb_target),
 																  nb_errors, (data.nb * nb_target)))
 	return nb_errors
