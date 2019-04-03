@@ -37,6 +37,11 @@ class Net_conv3d(nn.Module):
 			x2[:,j,:] = self.fc2(x1[:,j,:].view(-1,self.nb_hidden))
 		#print('[step4] : {0}'.format(x2.size()))
 		return x2
+
+	def freeze_features(self, q):
+		for p in self.parameters():
+		# q = True means that it is frozen and we do NOT need the gradient
+			p.requires_grad = not q
 ######################################################################
 class Net_conv3dbis(nn.Module):
 	def __init__(self, nb_hidden,nb_output):
@@ -64,8 +69,24 @@ class Net_conv3dbis(nn.Module):
 			x2[:,j,:] = self.fc2(x1[:,j,:].view(-1,self.nb_hidden))
 		#print('[step4] : {0}'.format(x2.size()))
 		return x2
-######################################################################
 
+	def freeze_features(self, q):
+		for p in self.parameters():
+		# q = True means that it is frozen and we do NOT need the gradient
+			p.requires_grad = not q
+######################################################################
+class Net_targetLayer(nn.Module):
+	def __init__(self,m,nb_hidden):
+		super(Net_targetLayer,self).__init__()
+		self.model_f = m.forward
+		self.fc1 = nn.Linear(2*10,nb_hidden)
+		self.fc2 = nn.Linear(nb_hidden,2)
+	def forward(self,x):
+		x = self.model_f(x)
+		x = F.relu(self.fc1(x.view(-1,2*10)))
+		x = self.fc2(x)
+		return x
+######################################################################
 def train_model(data, model, criterion = nn.MSELoss(), param = {"mini_batch_size" : 100,"eta" : 1e-1, "epoch" : 25, "label_target" : "class","verbose" : True}):
 	# Get parameters
 	mini_batch_size = param["mini_batch_size"]
@@ -88,26 +109,33 @@ def train_model(data, model, criterion = nn.MSELoss(), param = {"mini_batch_size
 					data.get_one_labels()
 				if(label_target == "class"):
 					target = data.train_class_hot
+					# Compute Loss for hot points labels
+					loss1 = criterion(output[:,0,:],target.narrow(0, b, mini_batch_size)[:,0,:])
+					loss2 = criterion(output[:,1,:],target.narrow(0, b, mini_batch_size)[:,1,:])
+					loss = loss1 + loss2
 				elif(label_target == "target"):
 					target = data.train_target_hot
+					#print("[output] : {} [target] : {}".format(output.size(),target.size()))
+					loss = criterion(output,target.narrow(0, b, mini_batch_size))
 				else:
 					if(verbose):print("Error: " + label_target + " is not a valide option... Chose: label_target or class")
-				# Compute Loss for hot points labels
-				loss1 = criterion(output[:,0,:],target.narrow(0, b, mini_batch_size)[:,0,:])
-				loss2 = criterion(output[:,1,:],target.narrow(0, b, mini_batch_size)[:,1,:])
+				
 			elif(type(criterion) is nn.CrossEntropyLoss):
 				if(label_target == "class"):
 					target = data.train_class
+					# Compute Loss
+					loss1 = criterion(output[:,0,:],target.narrow(0, b, mini_batch_size)[:,0])
+					loss2 = criterion(output[:,1,:],target.narrow(0, b, mini_batch_size)[:,1])
+					loss = loss1 + loss2
 				elif(label_target == "target"):
 					target = data.train_target
+					#print("[output] : {} [target] : {}".format(output.size(),target.size()))
+					loss = criterion(output,target.narrow(0, b, mini_batch_size))
 				else:
 					if(verbose):print("Error: " + label_target + " is not a valide option... Chose: label_target or class")
-				# Compute Loss
-				loss1 = criterion(output[:,0,:],target.narrow(0, b, mini_batch_size)[:,0])
-				loss2 = criterion(output[:,1,:],target.narrow(0, b, mini_batch_size)[:,1])
+
 			else:
 				if(verbose): print("Error: your criterion is not valide... Chose: nn.MSELoss or nn.CrossEntropyLoss")
-			loss = loss1 + loss2
 			model.zero_grad()
 			loss.backward()
 			sum_loss = sum_loss + loss.item()
@@ -138,14 +166,13 @@ def compute_nb_errors(data, model, param = {"mini_batch_size" : 100,"label_targe
 						nb_errors = nb_errors + 1
 		elif(label_target == "target"):
 			target = data.test_target
-			_, predicted_classes = output.view(-1,data.nb_classes).data.max(1)
+			_, predicted_classes = output.data.max(1)
 			for k in range(mini_batch_size):
 				if target.data[b + k]!= predicted_classes[k].long():
 					nb_errors = nb_errors + 1
 		else:
 			if(verbose):print("Error: " + label_target + " is not a valide option... Chose: label_target or class")
-	if(verbose) : print('Test error Net nh={:d} {:0.2f}%% {:d}/{:d}'.format(model.nb_hidden,
-																  (100 * nb_errors) /(data.nb * nb_target),
+	if(verbose) : print('Test error Net :{:0.2f}%% {:d}/{:d}'.format((100 * nb_errors) /(data.nb * nb_target),
 																  nb_errors, (data.nb * nb_target)))
 	return nb_errors
 ######################################################################
@@ -264,6 +291,34 @@ def mini_projet1():
 	}
 	nb_test_errors = compute_nb_errors(data1, model, param1)
 	
+	#PHASE 2
+	
+	## Example:
+	# 1) Choose model:
+	nb_hidden = 100
+	model.freeze_features(True) # Disable the gradient
+	model2 = Net_targetLayer(model,nb_hidden)
+	# 2) Choose criterion:
+	criterion = nn.CrossEntropyLoss() #nn.CrossEntropyLoss() #nn.MSELoss()
+	# 3) Choose Parameters
+	param = {
+	"mini_batch_size" : 100,
+	"eta" : 2e-1,
+	"epoch" : 25, 
+	"label_target" : "target",
+	"verbose" : True
+	}
+	# train the model
+	print("Mini Project 1: Training begins")
+	train_model(data1, model2, criterion, param)
+	print("Mini Project 1: Training finishes")
+	# test the model
+	param1 = {
+	"mini_batch_size" : 100,
+	"label_target" : "target",
+	"verbose" : True
+	}
+	nb_test_errors = compute_nb_errors(data1, model2, param1)
 																  
 	#new_practical4()
 
