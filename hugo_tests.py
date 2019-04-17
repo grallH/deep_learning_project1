@@ -24,9 +24,9 @@ class Net_conv3d(nn.Module):
 		#print('[step0] : {0}'.format(x.size()))
 		x = F.relu(F.max_pool3d(self.conv1(x), kernel_size=(1,3,3), stride=(1,3,3)))
 		#print('[step1] : {0}'.format(x.size()))
-		x = F.relu(F.max_pool3d(self.conv2(x), kernel_size=(1,1,1), stride=(1,1,1)))
+		x = F.relu(self.conv2(x))
 		#print('[step2] : {0}'.format(x.size()))
-		x = F.relu(F.max_pool3d(self.conv3(x), kernel_size=(1,1,1), stride=(1,1,1)))
+		x = F.relu(self.conv3(x))
 		# weight sharing manually implemented
 		x1 = torch.zeros(x.size(0),2,self.nb_hidden)
 		for j in range(x.size(2)):
@@ -267,7 +267,7 @@ def mini_projet1():
 	# 1) Choose model:
 	nb_hidden = 200
 	nb_output = data1.nb_classes
-	model = Net_conv3dbis(nb_hidden,nb_output) #Net_conv3d(nb_hidden,nb_output) #Net_conv3dbis(nb_hidden,nb_output)
+	model = Net_conv3d(nb_hidden,nb_output) #Net_conv3d(nb_hidden,nb_output) #Net_conv3dbis(nb_hidden,nb_output)
 	# 2) Choose criterion:
 	criterion = nn.CrossEntropyLoss() #nn.CrossEntropyLoss() #nn.MSELoss()
 	# 3) Choose Parameters
