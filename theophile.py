@@ -32,6 +32,7 @@ import torch
 from torch.autograd import Variable
 from torch import nn
 from torch.nn import functional as F
+#import hugo_test as h
 
 import dlc_practical_prologue as prologue
 
@@ -42,14 +43,16 @@ class Net1(nn.Module):
 		self.nb_output = nb_output
 		self.conv1 = nn.Conv2d(1, 64, kernel_size=(3,3))
 		self.conv2 = nn.Conv2d(64, 128, kernel_size=(3,3))
-		self.fc1 = nn.Linear(128, self.nb_hidden)
+		self.conv3 = nn.Conv2d(128, 256, kernel_size=(2,2))
+		self.fc1 = nn.Linear(256, self.nb_hidden)
 		self.fc2 = nn.Linear(self.nb_hidden, self.nb_output)
 
 	def forward(self, x):
 		#print('[step0] : {0}'.format(x.size()))
 		x = x.view(-1, 1, x.size(2), x.size(3))
 		x = F.relu(F.max_pool2d(self.conv1(x), kernel_size=(3,3), stride=(3,3)))
-		x = F.relu(F.max_pool2d(self.conv2(x), kernel_size=(2,2), stride=(2,2)))
+		x = F.relu(self.conv2(x))
+		x = F.relu(self.conv3(x))
 		x = F.relu(self.fc1(x.view(x.size(0),-1)))
 		x = F.relu(self.fc2(x))
 		x = x.view(-1,2,x.size(1))
@@ -66,10 +69,10 @@ def class_to_target(output,onehot):
 		output = torch.cat((1-output.view(-1,1),output.view(-1,1)),1)
 	return output
 
-def train_model(model, train_input, train_target, mini_batch_size, criterion, objective):
+def train_model(model, train_input, train_target, mini_batch_size, criterion, objective, n_iter):
 	train_input, train_target = Variable(train_input), Variable(train_target)
 	eta = 1e-1
-	for e in range(0, 25):
+	for e in range(0, n_iter):
 	    sum_loss = 0
   	  # We do this with mini-batches
 	    for b in range(0, train_input.size(0), mini_batch_size):
@@ -89,7 +92,8 @@ def train_model(model, train_input, train_target, mini_batch_size, criterion, ob
 	        loss.backward()
 	        for p in model.parameters():
 	            p.data.sub_(eta * p.grad.data)
-	    # print(e, sum_loss)
+
+#		print(e, sum_loss)
 
 def compute_nb_errors(model, input, target, mini_batch_size, onehot):
     target = target.float()
@@ -98,9 +102,9 @@ def compute_nb_errors(model, input, target, mini_batch_size, onehot):
     nb_errors = 0
     for b in range(0, input.size(0), mini_batch_size):
         output = model(input.narrow(0, b, mini_batch_size))
+        print(output.mean())
         output = class_to_target(output,False)
         output = (output>0.5).float() # Threshold
-        print(output.size())
         for k in range(mini_batch_size):
             if target[b+k] != output[k]:
                 nb_errors = nb_errors + 1
@@ -125,7 +129,7 @@ if __name__ == "__main__":
 	#label_type = "target"
 	label_type = "class"
 	nb_class = 10
-	nb_hidden = 200
+	nb_hidden = 100
 	n_iter = 25
 	#criterion = nn.MSELoss()
 	criterion = nn.CrossEntropyLoss()
@@ -154,7 +158,7 @@ if __name__ == "__main__":
 		test_label = to_one_hot(test_input, test_label)
 	
 	model = Net1(nb_hidden,nb_class)
-	train_model(model, train_input, train_label, mini_batch_size, criterion, label_type)
+	train_model(model, train_input, train_label, mini_batch_size, criterion, label_type, n_iter)
 	nb_errors = compute_nb_errors(model, test_input, test_label, mini_batch_size, onehot)
 	print('[Nb errors] : {0}'.format(nb_errors))
 	print('[% errors] : {0}'.format(100*nb_errors/m))
