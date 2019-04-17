@@ -86,6 +86,8 @@ class Net_targetTheo(nn.Module):
 		
 ######################################################################
 def class_to_target(output,onehot):
+	output = (output.transpose(2,0) - output.transpose(2,0).min(0)[0]).transpose(0,2)
+	output = output**3
 	class1 = output.narrow(1,0,1).transpose(1,2)
 	class2 = output.narrow(1,1,1)
 	class1 = F.normalize(class1,p=1,dim=1)
