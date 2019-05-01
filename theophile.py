@@ -49,16 +49,57 @@ class Net1(nn.Module):
 
 	def forward(self, x):
 		#print('[step0] : {0}'.format(x.size()))
-		x = x.view(-1, 1, x.size(2), x.size(3))
+		x = x.view(-1, 1, x.size(2), x.size(3)) # uncomment for weight sharing
 		x = F.relu(F.max_pool2d(self.conv1(x), kernel_size=(3,3), stride=(3,3)))
 		x = F.relu(self.conv2(x))
 		x = F.relu(self.conv3(x))
 		x = F.relu(self.fc1(x.view(x.size(0),-1)))
-		x = F.relu(self.fc2(x))
+		x = self.fc2(x)
+		#print('[step1] : {0}'.format(x.size()))
+		x = x.view(-1,2,x.size(1))
+		return x
+		
+class Net2(nn.Module): # without weight sharing
+	def __init__(self, nb_hidden,nb_output):
+		super(Net2, self).__init__()
+		self.nb_hidden = nb_hidden
+		self.nb_output = nb_output
+		self.conv1a = nn.Conv2d(1, 64, kernel_size=(3,3))
+		self.conv1b = nn.Conv2d(1, 64, kernel_size=(3,3))
+		self.conv2a = nn.Conv2d(64, 128, kernel_size=(3,3))
+		self.conv2b = nn.Conv2d(64, 128, kernel_size=(3,3))
+		self.conv3a = nn.Conv2d(128, 256, kernel_size=(2,2))
+		self.conv3b = nn.Conv2d(128, 256, kernel_size=(2,2))
+		self.fc1a = nn.Linear(256, self.nb_hidden)
+		self.fc1b = nn.Linear(256, self.nb_hidden)
+		self.fc2a = nn.Linear(self.nb_hidden, self.nb_output)
+		self.fc2b = nn.Linear(self.nb_hidden, self.nb_output)
+
+	def forward(self, x):
+		x = x.view(-1, 1, x.size(2), x.size(3))
+		#print('[x] : {0}'.format(x.size()))
+		xa = x[0:x.size(0)//2,:,:,:]
+		xb = x[x.size(0)//2:,:,:,:]
+		#print('[xa] : {0}'.format(xa.size()))
+		#print('[xb] : {0}'.format(xb.size()))
+		xa = F.relu(F.max_pool2d(self.conv1a(xa), kernel_size=(3,3), stride=(3,3)))
+		xb = F.relu(F.max_pool2d(self.conv1b(xb), kernel_size=(3,3), stride=(3,3)))
+		xa = F.relu(self.conv2a(xa))
+		xb = F.relu(self.conv2b(xb))
+		xa = F.relu(self.conv3a(xa))
+		xb = F.relu(self.conv3b(xb))
+		xa = F.relu(self.fc1a(xa.view(xa.size(0),-1)))
+		xb = F.relu(self.fc1b(xb.view(xb.size(0),-1)))
+		xa = self.fc2a(xa)
+		xb = self.fc2b(xb)
+		x = torch.cat([xa,xb])
+		#print('[x] : {0}'.format(x.size()))
 		x = x.view(-1,2,x.size(1))
 		return x
 
 def class_to_target(output,onehot):
+	output = (output.transpose(2,0) - output.transpose(2,0).min(0)[0]).transpose(0,2)
+	output = output**6
 	class1 = output.narrow(1,0,1).transpose(1,2)
 	class2 = output.narrow(1,1,1)
 	class1 = F.normalize(class1,p=1,dim=1)
@@ -92,8 +133,7 @@ def train_model(model, train_input, train_target, mini_batch_size, criterion, ob
 	        loss.backward()
 	        for p in model.parameters():
 	            p.data.sub_(eta * p.grad.data)
-
-#		print(e, sum_loss)
+	    #print(e, sum_loss)
 
 def compute_nb_errors(model, input, target, mini_batch_size, onehot):
     target = target.float()
@@ -102,7 +142,7 @@ def compute_nb_errors(model, input, target, mini_batch_size, onehot):
     nb_errors = 0
     for b in range(0, input.size(0), mini_batch_size):
         output = model(input.narrow(0, b, mini_batch_size))
-        print(output.mean())
+        #print(output.mean())
         output = class_to_target(output,False)
         output = (output>0.5).float() # Threshold
         for k in range(mini_batch_size):
@@ -123,7 +163,7 @@ def to_one_hot(input,label):
 		error("Error: Incorrect label shape, impossible to convert to one hot encoding")
 	return(lab)
 
-if __name__ == "__main__":
+def test():
 	mini_batch_size = 100
 	m = 1000;
 	#label_type = "target"
@@ -157,8 +197,21 @@ if __name__ == "__main__":
 		train_label = to_one_hot(train_input, train_label)
 		test_label = to_one_hot(test_input, test_label)
 	
-	model = Net1(nb_hidden,nb_class)
+	model = Net1(nb_hidden,nb_class) # weight sharing
+	#model = Net2(nb_hidden,nb_class) # no weight sharing
 	train_model(model, train_input, train_label, mini_batch_size, criterion, label_type, n_iter)
 	nb_errors = compute_nb_errors(model, test_input, test_label, mini_batch_size, onehot)
-	print('[Nb errors] : {0}'.format(nb_errors))
-	print('[% errors] : {0}'.format(100*nb_errors/m))
+	#print('[Nb errors] : {0}'.format(nb_errors))
+	#print('[% errors] : {0}'.format(100*nb_errors/m))
+	return(100*nb_errors/m)
+	
+if __name__ == "__main__":
+	n_test = 10
+	error_mean = 0.
+	for j in range(0, n_test):
+		error_perc = test()
+		print('Test {0} [% errors] : {1}'.format(j, error_perc))
+		error_mean += error_perc
+	error_mean /= n_test
+	print('Average [% errors] : {0}'.format(error_mean))
+		
