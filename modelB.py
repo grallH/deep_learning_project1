@@ -36,6 +36,8 @@ from torch.nn import functional as F
 
 import dlc_practical_prologue as prologue
 
+################################
+# MODEL WITH WEIGHT SHARING
 class Net1(nn.Module):
 	def __init__(self, nb_hidden,nb_output):
 		super(Net1, self).__init__()
@@ -58,8 +60,10 @@ class Net1(nn.Module):
 		#print('[step1] : {0}'.format(x.size()))
 		x = x.view(-1,2,x.size(1))
 		return x
-		
-class Net2(nn.Module): # without weight sharing
+
+################################
+# MODEL WITHOUT WEIGHT SHARING
+class Net2(nn.Module):
 	def __init__(self, nb_hidden,nb_output):
 		super(Net2, self).__init__()
 		self.nb_hidden = nb_hidden
@@ -97,6 +101,8 @@ class Net2(nn.Module): # without weight sharing
 		x = x.view(-1,2,x.size(1))
 		return x
 
+################################
+# "HARD-CODED" PART: FROM CLASS TO TARGET
 def class_to_target(output,onehot):
 	output = (output.transpose(2,0) - output.transpose(2,0).min(0)[0]).transpose(0,2)
 	output = output**6
@@ -110,30 +116,35 @@ def class_to_target(output,onehot):
 		output = torch.cat((1-output.view(-1,1),output.view(-1,1)),1)
 	return output
 
-def train_model(model, train_input, train_target, mini_batch_size, criterion, objective, n_iter):
-	train_input, train_target = Variable(train_input), Variable(train_target)
-	eta = 1e-1
-	for e in range(0, n_iter):
-	    sum_loss = 0
+def train_model(model, train_input, train_label, mini_batch_size, criterion, objective, epochs, eta, onehot, train_target):
+	m = train_input.size(0)
+	train_input, train_label = Variable(train_input), Variable(train_label)
+	sum_loss = torch.zeros(epochs,1)
+	error_rate = torch.zeros(epochs,1)
+	
+	for e in range(0, epochs):
   	  # We do this with mini-batches
 	    for b in range(0, train_input.size(0), mini_batch_size):
 	        output = model(train_input.narrow(0, b, mini_batch_size))
-	        target = train_target.narrow(0,b,mini_batch_size)
+	        label = train_label.narrow(0,b,mini_batch_size)
 	        if objective == "target":
 	        	output = class_to_target(output,True)
 	        elif objective == "class":
 	        	output = output.view(-1,output.size(2))
 	        	if type(criterion) is nn.MSELoss:
-		        	target = target.view(-1,target.size(2))
+		        	label = label.view(-1,label.size(2))
 		        elif type(criterion) is nn.CrossEntropyLoss:
-		        	target = target.view(-1)
-	        loss = criterion(output, target)
-	        sum_loss = sum_loss + loss.item()
+		        	label = label.view(-1)
+	        loss = criterion(output, label)
+	        sum_loss[e,0] = sum_loss[e,0] + loss.item()
 	        model.zero_grad()
 	        loss.backward()
 	        for p in model.parameters():
 	            p.data.sub_(eta * p.grad.data)
-	    #print(e, sum_loss)
+	    error_rate[e,0] = \
+	    compute_nb_errors(model, train_input, train_target, mini_batch_size, onehot)/m
+	    #print("Loss: {0} / Train error: {1}%".format(sum_loss[e,0],100*error_rate[e,0]))
+	return(sum_loss, error_rate)
 
 def compute_nb_errors(model, input, target, mini_batch_size, onehot):
     target = target.float()
@@ -153,8 +164,8 @@ def compute_nb_errors(model, input, target, mini_batch_size, onehot):
 
 def to_one_hot(input,label):
 	if label.dim() == 2:
-		nb = train_class.unique().size(0)
-		lab = torch.zeros(train_target.size(0), 2, nb)
+		nb = label.unique().size(0)
+		lab = torch.zeros(input.size(0), 2, nb)
 		lab[:,0,:] = prologue.convert_to_one_hot_labels(input, label[:,0])
 		lab[:,1,:] = prologue.convert_to_one_hot_labels(input, label[:,1])
 	elif label.dim() == 1:
@@ -163,26 +174,37 @@ def to_one_hot(input,label):
 		error("Error: Incorrect label shape, impossible to convert to one hot encoding")
 	return(lab)
 
-def run():
-	nb_class = 10
+def run(criterion, label_type, epochs, weightsharing):
+	################################
+	# MANUAL PARAMETERS
+	
+	# Dataset options
+	nb_class = 10 # Should not be changed
+	m = 1000
 	
 	# Model structure
 	nb_hidden = 100
-	weight_sharing = true
 	
 	# Train options
 	mini_batch_size = 100
-	m = 1000;
-	#label_type = "target"
-	label_type = "class"
-	n_iter = 25
-	#criterion = nn.MSELoss()
-	criterion = nn.CrossEntropyLoss()
+	eta = 1e-1
 	
 	################################
+	# AUTOMATIC PARAMETERS
 	
+	if criterion == "MSELoss":
+		criterion = nn.MSELoss()
+	elif criterion == "CrossEntropyLoss":
+		criterion = nn.CrossEntropyLoss()
+	else:
+		error("Error: incorrect criterion: using MSELoss")
+		criterion = nn.MSELoss()
+				
 	onehot = type(criterion) is nn.MSELoss
-		
+	
+	################################
+	# LOAD DATASET
+	
 	train_input, train_target, train_class, test_input, test_target, test_class = \
 		prologue.generate_pair_sets(m)
 	# Size of input is 1000,2,14,14
@@ -204,25 +226,25 @@ def run():
 	if onehot:
 		train_label = to_one_hot(train_input, train_label)
 		test_label = to_one_hot(test_input, test_label)
+		## train_target might still be useful even if the train is performed on class, 
+		## for computing the error rate (for targets) during the train
+		train_target = to_one_hot(train_input, train_target)
+	
+	################################
+	# LOAD MODEL
 	
 	if weightsharing:
 		model = Net1(nb_hidden,nb_class)
 	else:
 		model = Net2(nb_hidden,nb_class) # no weight sharing
-		
-	train_model(model, train_input, train_label, mini_batch_size, criterion, label_type, n_iter)
-	nb_errors = compute_nb_errors(model, test_input, test_label, mini_batch_size, onehot)
-	#print('[Nb errors] : {0}'.format(nb_errors))
-	#print('[% errors] : {0}'.format(100*nb_errors/m))
-	return(100*nb_errors/m)
 	
-if __name__ == "__main__":
-	n_run = 10
-	error_mean = 0.
-	for j in range(0, n_run):
-		error_perc = run()
-		print('Test {0} [% errors] : {1}'.format(j, error_perc))
-		error_mean += error_perc
-	error_mean /= n_run
-	print('Average [% errors] : {0}'.format(error_mean))
+	################################
+	# TRAIN AND TEST
+	[loss, train_error] = train_model(model, train_input, train_label, mini_batch_size,\
+	criterion, label_type, epochs, eta, onehot, train_target)
+	test_errors = compute_nb_errors(model, test_input, test_label, mini_batch_size, onehot)
+	#print('[Nb errors] : {0}'.format(nb_errors))
+	#print('Test error: {0}%'.format(100*test_errors/m))
+	
+	return(loss, train_error, test_errors/m)
 		
