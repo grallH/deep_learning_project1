@@ -163,16 +163,24 @@ def to_one_hot(input,label):
 		error("Error: Incorrect label shape, impossible to convert to one hot encoding")
 	return(lab)
 
-def test():
+def run():
+	nb_class = 10
+	
+	# Model structure
+	nb_hidden = 100
+	weight_sharing = true
+	
+	# Train options
 	mini_batch_size = 100
 	m = 1000;
 	#label_type = "target"
 	label_type = "class"
-	nb_class = 10
-	nb_hidden = 100
 	n_iter = 25
 	#criterion = nn.MSELoss()
 	criterion = nn.CrossEntropyLoss()
+	
+	################################
+	
 	onehot = type(criterion) is nn.MSELoss
 		
 	train_input, train_target, train_class, test_input, test_target, test_class = \
@@ -197,8 +205,11 @@ def test():
 		train_label = to_one_hot(train_input, train_label)
 		test_label = to_one_hot(test_input, test_label)
 	
-	model = Net1(nb_hidden,nb_class) # weight sharing
-	#model = Net2(nb_hidden,nb_class) # no weight sharing
+	if weightsharing:
+		model = Net1(nb_hidden,nb_class)
+	else:
+		model = Net2(nb_hidden,nb_class) # no weight sharing
+		
 	train_model(model, train_input, train_label, mini_batch_size, criterion, label_type, n_iter)
 	nb_errors = compute_nb_errors(model, test_input, test_label, mini_batch_size, onehot)
 	#print('[Nb errors] : {0}'.format(nb_errors))
@@ -206,12 +217,12 @@ def test():
 	return(100*nb_errors/m)
 	
 if __name__ == "__main__":
-	n_test = 10
+	n_run = 10
 	error_mean = 0.
-	for j in range(0, n_test):
-		error_perc = test()
+	for j in range(0, n_run):
+		error_perc = run()
 		print('Test {0} [% errors] : {1}'.format(j, error_perc))
 		error_mean += error_perc
-	error_mean /= n_test
+	error_mean /= n_run
 	print('Average [% errors] : {0}'.format(error_mean))
 		
