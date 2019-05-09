@@ -6,177 +6,35 @@ import torch
 from torch.autograd import Variable
 from torch import nn
 from torch.nn import functional as F
-import matplotlib.pyplot as plt
 
 import dlc_practical_prologue as prologue
 ######################################################################
 class Net_conv3d(nn.Module):
-	def __init__(self, nb_hidden,nb_output):
+	def __init__(self, nb_hidden):
 		super(Net_conv3d, self).__init__()
 		self.nb_hidden = nb_hidden
-		self.nb_output = nb_output
+		self.nb_class = 10
+		self.nb_output = 2
 		self.conv1 = nn.Conv3d(1, 64, kernel_size=(1,3,3))
 		self.conv2 = nn.Conv3d(64, 128, kernel_size=(1,3,3))
 		self.conv3 = nn.Conv3d(128, 256, kernel_size=(1,2,2))
 		self.fc1 = nn.Linear(256, self.nb_hidden)
-		self.fc2 = nn.Linear(self.nb_hidden, self.nb_output)
-
+		self.fc2 = nn.Linear(self.nb_hidden, self.nb_class)
+		self.fc3 = nn.Linear(self.nb_output*self.nb_class,self.nb_hidden)
+		self.fc4 = nn.Linear(self.nb_hidden,self.nb_output)
 	def forward(self, x):
-		#print('[step0] : {0}'.format(x.size()))
 		x = F.relu(F.max_pool3d(self.conv1(x), kernel_size=(1,3,3), stride=(1,3,3)))
-		#print('[step1] : {0}'.format(x.size()))
 		x = F.relu(self.conv2(x))
-		#print('[step2] : {0}'.format(x.size()))
 		x = F.relu(self.conv3(x))
-		# weight sharing manually implemented
 		x1 = torch.zeros(x.size(0),2,self.nb_hidden)
 		for j in range(x.size(2)):
-			x1[:,j,:] = F.relu(self.fc1(x[:,:,j,:,:].reshape(100,-1)))
-		#print('[step3] : {0}'.format(x1.size()))
-		x2 = torch.zeros(x.size(0),2,self.nb_output)
+			x1[:,j,:] = F.relu(self.fc1(x[:,:,j,:,:].reshape(self.nb_hidden,-1)))
+		x_class = torch.zeros(x.size(0),2,self.nb_class)
 		for j in range(x.size(2)):
-			x2[:,j,:] = self.fc2(x1[:,j,:].view(-1,self.nb_hidden))
-		#print('[step4] : {0}'.format(x2.size()))
-		return x2
-
-	def freeze_features(self, q):
-		for p in self.parameters():
-		# q = True means that it is frozen and we do NOT need the gradient
-			p.requires_grad = not q
-######################################################################
-class Net_conv3dbis(nn.Module):
-	def __init__(self, nb_hidden,nb_output):
-		super(Net_conv3dbis, self).__init__()
-		self.nb_hidden = nb_hidden
-		self.nb_output = nb_output
-		self.conv1 = nn.Conv3d(1, 64, kernel_size=(1,3,3))
-		self.conv2 = nn.Conv3d(64, 128, kernel_size=(1,3,3))
-		self.fc1 = nn.Linear(128, self.nb_hidden)
-		self.fc2 = nn.Linear(self.nb_hidden, self.nb_output)
-
-	def forward(self, x):
-		#print('[step0] : {0}'.format(x.size()))
-		x = F.relu(F.max_pool3d(self.conv1(x), kernel_size=(1,3,3), stride=(1,3,3)))
-		#print('[step1] : {0}'.format(x.size()))
-		x = F.relu(F.max_pool3d(self.conv2(x), kernel_size=(1,2,2), stride=(1,2,2)))
-		#print('[step2] : {0}'.format(x.size()))
-		# weight sharing manually implemented
-		x1 = torch.zeros(x.size(0),2,self.nb_hidden)
-		for j in range(x.size(2)):
-			x1[:,j,:] = F.relu(self.fc1(x[:,:,j,:,:].reshape(100,-1)))
-		#print('[step3] : {0}'.format(x1.size()))
-		x2 = torch.zeros(x.size(0),2,self.nb_output)
-		for j in range(x.size(2)):
-			x2[:,j,:] = self.fc2(x1[:,j,:].view(-1,self.nb_hidden))
-		#print('[step4] : {0}'.format(x2.size()))
-		return x2
-
-	def freeze_features(self, q):
-		for p in self.parameters():
-		# q = True means that it is frozen and we do NOT need the gradient
-			p.requires_grad = not q
-######################################################################
-class Net_targetLayer(nn.Module):
-	def __init__(self,m,nb_hidden):
-		super(Net_targetLayer,self).__init__()
-		self.model_f = m.forward
-		self.fc1 = nn.Linear(2*10,nb_hidden)
-		self.fc2 = nn.Linear(nb_hidden,2)
-	def forward(self,x):
-		x = self.model_f(x)
-		x = F.relu(self.fc1(x.view(-1,2*10)))
-		x = self.fc2(x)
-		return x
-######################################################################
-def train_model(data, model, criterion = nn.MSELoss(), param = {"mini_batch_size" : 100,"eta" : 1e-1, "epoch" : 25, "label_target" : "class","verbose" : True}):
-	# Get parameters
-	mini_batch_size = param["mini_batch_size"]
-	eta = param["eta"]
-	epoch = param["epoch"]
-	label_target = param["label_target"]
-	verbose = param["verbose"]
-	loss_array = torch.zeros(epoch)
-	for e in range(epoch):
-		sum_loss = 0
-		for b in range(0, data.nb, mini_batch_size):
-			temp = data.train_input.narrow(0, b, mini_batch_size)
-			#print('[train_input] : {0} [temp] : {1}'.format(train_input.size(), temp1.size()))
-			output = model(temp)
-			#print('[output] : {0} [temp] : {1}'.format(output.size(), temp.size()))
-			loss1 = loss2 = torch.zeros(1)
-			if(type(criterion) is nn.MSELoss):
-				#Check if there is hot point labels
-				if(~data.hasHot):
-					data.get_one_labels()
-				if(label_target == "class"):
-					target = data.train_class_hot
-					# Compute Loss for hot points labels
-					loss1 = criterion(output[:,0,:],target.narrow(0, b, mini_batch_size)[:,0,:])
-					loss2 = criterion(output[:,1,:],target.narrow(0, b, mini_batch_size)[:,1,:])
-					loss = loss1 + loss2
-				elif(label_target == "target"):
-					target = data.train_target_hot
-					#print("[output] : {} [target] : {}".format(output.size(),target.size()))
-					loss = criterion(output,target.narrow(0, b, mini_batch_size))
-				else:
-					if(verbose):print("Error: " + label_target + " is not a valid option... Chose: label_target or class")
-			elif(type(criterion) is nn.CrossEntropyLoss):
-				if(label_target == "class"):
-					target = data.train_class
-					# Compute Loss
-					loss1 = criterion(output[:,0,:],target.narrow(0, b, mini_batch_size)[:,0])
-					loss2 = criterion(output[:,1,:],target.narrow(0, b, mini_batch_size)[:,1])
-					loss = loss1 + loss2
-				elif(label_target == "target"):
-					target = data.train_target
-					#print("[output] : {} [target] : {}".format(output.size(),target.size()))
-					loss = criterion(output,target.narrow(0, b, mini_batch_size))
-				else:
-					if(verbose):print("Error: " + label_target + " is not a valid option... Choose: label_target or class")
-
-			else:
-				if(verbose): print("Error: your criterion is not valid... Chose: nn.MSELoss or nn.CrossEntropyLoss")
-			model.zero_grad()
-			loss.backward()
-			sum_loss = sum_loss + loss.item()
-			for p in model.parameters():
-				p.data.sub_(eta * p.grad.data)
-		loss_array[e] = sum_loss
-		if(verbose): print(e, sum_loss)
-	return loss_array
-
-def compute_nb_errors(data, model, param = {"mini_batch_size" : 100,"label_target" : "class","verbose" : True}):
-	nb_errors = 0
-	mini_batch_size = param["mini_batch_size"]
-	label_target = param["label_target"]
-	verbose = param["verbose"]
-	
-	for b in range(0, data.nb, mini_batch_size):
-		output = model(data.test_input.narrow(0, b, mini_batch_size))
-		if(label_target == "class"):
-			nb_target = data.test_class.size(1)
-		else:
-			nb_target = 1
-		predicted_classes = torch.zeros(mini_batch_size,nb_target)
-		if(label_target == "class"):
-			target = data.test_class
-			for j in range(target.size(1)):
-				_, predicted_classes[:,j] = output[:,j,:].view(-1,data.nb_classes).data.max(1)
-			for k in range(mini_batch_size):
-				for j in range (target.size(1)):
-					if target.data[b + k,j] != predicted_classes[k,j].long():
-						nb_errors = nb_errors + 1
-		elif(label_target == "target"):
-			target = data.test_target
-			_, predicted_classes = output.data.max(1)
-			for k in range(mini_batch_size):
-				if target.data[b + k]!= predicted_classes[k].long():
-					nb_errors = nb_errors + 1
-		else:
-			if(verbose):print("Error: " + label_target + " is not a valid option... Choose: label_target or class")
-	if(verbose) : print('Test error Net :{:0.2f}%% {:d}/{:d}'.format((100 * nb_errors) /(data.nb * nb_target),
-																  nb_errors, (data.nb * nb_target)))
-	return nb_errors
+			x_class[:,j,:] = self.fc2(x1[:,j,:].view(-1,self.nb_hidden))
+		x3 = F.relu(self.fc3(x_class.view(-1,self.nb_output*self.nb_class)))
+		x_target = self.fc4(x3)
+		return x_target, x_class
 ######################################################################
 class data_set():
 	""" 
@@ -254,103 +112,116 @@ class data_set():
 		self.train_input.sub_(mu).div_(std)
 		self.test_input.sub_(mu).div_(std)
 ######################################################################
+def train_model(data, model, criterion = nn.MSELoss(), param = {"mini_batch_size" : 100,"eta" : 1e-1, "epoch" : 25, "label_target" : "class","verbose" : True}):
+	# Get parameters
+	mini_batch_size = param["mini_batch_size"]
+	eta = param["eta"]
+	epoch = param["epoch"]
+	label_target = param["label_target"]
+	verbose = param["verbose"]
+	loss_array = torch.zeros(epoch,2)
+	error_array = torch.zeros(epoch)
+	param["verbose"] = False
+	# Main loop
+	for e in range(epoch):
+		sum_loss_t = sum_loss_c = 0
+		for b in range(0, data.nb, mini_batch_size):
+			temp = data.train_input.narrow(0, b, mini_batch_size)
+			output_target, output_class = model(temp)
+			#output_target, output_class = model(temp)
+			loss1 = loss2 = loss_c = loss_t = torch.zeros(1)
+			if(type(criterion) is nn.MSELoss):
+				#Check if there is hot point labels
+				if(~data.hasHot):
+					data.get_one_labels()
+				target = data.train_target_hot
+				loss_t = criterion(output_target,target.narrow(0, b, mini_batch_size))
+				if(label_target == "auxiliary"):
+						target = data.train_class_hot
+						# Compute Class Losses
+						loss1 = criterion(output_class[:,0,:],target.narrow(0, b, mini_batch_size)[:,0,:])
+						loss2 = criterion(output_class[:,1,:],target.narrow(0, b, mini_batch_size)[:,1,:])
+						loss_c = loss1 + loss2
+			elif(type(criterion) is nn.CrossEntropyLoss):
+					target = data.train_target
+					loss_t = criterion(output_target,target.narrow(0, b, mini_batch_size))
+					if(label_target == "auxiliary"):
+						target = data.train_class
+						# Compute Class Losses
+						loss1 = criterion(output_class[:,0,:],target.narrow(0, b, mini_batch_size)[:,0])
+						loss2 = criterion(output_class[:,1,:],target.narrow(0, b, mini_batch_size)[:,1])
+						loss_c = loss1 + loss2
+			else:
+				if(verbose): print("Error: your criterion is not valid... Chose: nn.MSELoss or nn.CrossEntropyLoss")
+			model.zero_grad()
+			loss = loss_c +loss_t
+			loss.backward()
+			sum_loss_c = sum_loss_c + loss_c.item()
+			sum_loss_t = sum_loss_t + loss_t.item()
+			sum_loss = sum_loss_c + sum_loss_t
+			with torch.no_grad():
+				for p in model.parameters():
+					p.data.sub_(eta * p.grad.data)
+		loss_array[e,0] = sum_loss_t
+		loss_array[e,1] = sum_loss_c
+		error_array[e]  = compute_nb_errors(data, model,"train", param)/data.nb
+		if(verbose): print(e, round(sum_loss,2), round(error_array[e].item(),2))
+	return loss_array,error_array
+######################################################################
+def compute_nb_errors(data, model, type,param = {"mini_batch_size" : 100,"label_target" : "class","verbose" : True}):
+	nb_errors = 0
+	mini_batch_size = param["mini_batch_size"]
+	label_target = param["label_target"]
+	verbose = param["verbose"]
+	if(type == "test"):
+		input = data.test_input
+		target = data.test_target
+	else:
+		input = data.train_input
+		target = data.train_target
+	
+	for b in range(0, data.nb, mini_batch_size):
+		output_target,_ = model(input.narrow(0, b, mini_batch_size))
+		_, predicted_classes = output_target.data.max(1)
+		for k in range(mini_batch_size):
+			if target.data[b + k]!= predicted_classes[k].long():
+				nb_errors = nb_errors + 1
+	if(verbose) : print('Test error Net :{:0.2f}% {:d}/{:d}'.format((100 * nb_errors) /(data.nb),
+																  nb_errors, (data.nb )))
+	return nb_errors
+######################################################################
 
-def mini_projet1():
-	N = 10
-	e = 25
-	nb_test_errors_class = torch.zeros(N)
-	nb_test_errors_target = torch.zeros(N)
-	losses_class = torch.zeros(N,e)
-	losses_target = torch.zeros(N,e)
-
-	for j in range(0,N):
-		# Load dataset
-		param = {
-		"nb" : 1000, 
-		"nb_classes" : 10, 
-		"normalized" : True, 
-		"one_hot_labels" : True,
-		"conv3D" : True
-		}
-		data1 = data_set(param)
-		print("Mini Project 1: Load data success")
-		## Example:
-		# 1) Choose model:
-		nb_hidden = 200
-		nb_output = data1.nb_classes
-		model = Net_conv3d(nb_hidden,nb_output) #Net_conv3d(nb_hidden,nb_output) #Net_conv3dbis(nb_hidden,nb_output)
-		# 2) Choose criterion:
-		criterion = nn.CrossEntropyLoss() #nn.CrossEntropyLoss() #nn.MSELoss()
-		# 3) Choose Parameters
-		param = {
-		"mini_batch_size" : 100,
-		"eta" : 1e-1,
-		"epoch" : e, 
-		"label_target" : "class",
-		"verbose" : True
-		}
-		# train the model
-		print("Mini Project 1: Training begins")
-		losses_class[j,:] = train_model(data1, model, criterion, param)
-		print("Mini Project 1: Training finishes")
-		# test the model
-		param1 = {
-		"mini_batch_size" : 100,
-		"label_target" : "class",
-		"verbose" : True
-		}
-		nb_test_errors_class[j] = compute_nb_errors(data1, model, param1)
-		
-		#PHASE 2
-		
-		## Example:
-		# 1) Choose model:
-		nb_hidden = 100
-		model.freeze_features(True) # Disable the gradient
-		model2 = Net_targetLayer(model,nb_hidden)
-		# 2) Choose criterion:
-		criterion = nn.CrossEntropyLoss() #nn.CrossEntropyLoss() #nn.MSELoss()
-		# 3) Choose Parameters
-		param = {
-		"mini_batch_size" : 100,
-		"eta" : 2e-1,
-		"epoch" : e, 
-		"label_target" : "target",
-		"verbose" : True
-		}
-		# train the model
-		print("Mini Project 1: Training begins")
-		losses_target[j,:] = train_model(data1, model2, criterion, param)
-		print("Mini Project 1: Training finishes")
-		# test the model
-		param1 = {
-		"mini_batch_size" : 100,
-		"label_target" : "target",
-		"verbose" : True
-		}
-		nb_test_errors_target[j] = compute_nb_errors(data1, model2, param1)
-	# Figures
-	plt.figure(1)
-	plt.plot(nb_test_errors_target.numpy()/1000,'ro') # Plot the percent of target error for each run 
-	plt.ylabel('[%] of error for the target labels')
-	plt.xlabel('Different Runs')
-	plt.xlim(0, N)
-	plt.show()
-	plt.figure(2)
-	plt.errorbar(range(0,e),losses_class.mean(0).numpy(),yerr = losses_class.std(0).numpy()) # Plot the mean + std of Loss for the class label 
-	plt.xlim(0, e)
-	plt.ylabel('Loss for the class label')
-	plt.xlabel('Different epoch')
-	plt.show()
-	plt.figure(3)
-	plt.errorbar(range(0,e),losses_target.mean(0).numpy(),yerr = losses_target.std(0).numpy())# Plot the mean + std of Loss for the target label 
-	plt.xlim(0, e)
-	plt.ylabel('Loss for the target label')
-	plt.xlabel('Different epoch')
-	plt.show()
-	#new_practical4()
-
-
-if __name__ == "__main__":
-	#practical4()
-	mini_projet1()
+def run(criterion, label_type, e, weightsharing):
+	# Load dataset
+	nb = 1000
+	nb_class = 10
+	eta = 1e-1
+	mini_batch_size = 100
+	param = {
+	"nb" : nb, 
+	"nb_classes" : nb_class, 
+	"normalized" : True, 
+	"one_hot_labels" : True,
+	"conv3D" : True,
+	"mini_batch_size" : mini_batch_size,
+	"eta" : eta,
+	"epoch" : e, 
+	"label_target" : label_type,
+	"verbose" : False
+	}
+	data = data_set(param)
+	# Creat Model
+	nb_hidden1 = 100
+	model = Net_conv3d(nb_hidden1)
+	#nb_hidden2 = 100
+	#model = Net_targetLayer(model_class,nb_hidden2)
+	# Metric
+	if(criterion == "CrossEntropyLoss"):
+		metric = nn.CrossEntropyLoss()
+	else:
+		metric = nn.MSELoss()
+	# train the model
+	loss,train_error = train_model(data, model, metric, param)
+	test_errors = compute_nb_errors(data, model,"test", param) 
+	
+	return(loss, train_error, test_errors/nb)

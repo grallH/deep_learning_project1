@@ -1,0 +1,27 @@
+# Practical 1
+
+# 1) Weight sharing:
+
+[Test]
+[with weight sharing] : error_rate: mean  = 0.164 std : 0.046
+[without weight sharing] : error_rate: mean  = 0.22 std : 0.03
+
+# 2) Auxiliary Loss:
+
+[Test]
+[target] : error_rate: mean  = 0.175 std : 0.017
+[with auxiliary] : error_rate: mean  = 0.071 std : 0.017
+
+# 3) Engineering problem :
+
+MSELoss
+[Test]
+[all trained] : error_rate: mean  = 0.14 std : 0.011
+[hard coded] : target error_rate: mean  = 0.165 std : 0.029
+[hard coded] : class error_rate: mean  = 0.142 std : 0.022
+
+CrossEntropyLoss
+[Test]
+[all trained] : error_rate: mean  = 0.066 std : 0.011
+[hard coded] : target error_rate: mean  = 0.165 std : 0.033
+[hard coded] : class error_rate: mean  = 0.056 std : 0.01
