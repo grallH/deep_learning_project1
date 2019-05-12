@@ -93,7 +93,9 @@ class Relu :
 
 
 class Sequential:
+    """
 
+    """
     def __init__(self, module):
         self.model = module
 
@@ -162,7 +164,7 @@ test_input.sub_(mean).div_(std)
 # fixed learning rate
 eta = 0.00005
 
-# instance fully connected layers relu and loss
+# instance fully connected layers, relu and loss
 lin1 = Linear(2, 25)
 lin2 = Linear(25, 25)
 lin3 = Linear(25, 25)
@@ -177,49 +179,63 @@ model = [lin1, relu, lin2, relu, lin3, relu, lin4, relu, lin5]
 # instance sequential class
 seq = Sequential(model)
 
-mini_batch_size = 100
 
-for k in range(20):
+def run(model, train_input, test_input, Nepoch, mini_batch_size):
 
-    # Back-prop
+    acc_loss_list = []
+    per_train_error_list = []
+    per_test_error_list = []
 
-    acc_loss = 0
-    nb_train_errors = 0
+    for k in range(Nepoch):
 
-    seq.zero_grad()
+        # Back-prop
 
-    for b in range(0, train_input.size(0), mini_batch_size):
+        acc_loss = 0
+        nb_train_errors = 0
 
-        for n in range(mini_batch_size):
+        seq.zero_grad()
 
-            x_list = seq.forward_pass(train_input[b+n])
+        for b in range(0, train_input.size(0), mini_batch_size):
 
-            pred = x_list[-1].max(0)[1].item()
+            for n in range(mini_batch_size):
 
-            if train_target[b+n, pred] < 0.5: nb_train_errors = nb_train_errors + 1
-            acc_loss = acc_loss + loss.forward(x_list[-1], train_target[b+n])
+                x_list = seq.forward_pass(train_input[b + n])
 
-            seq.backward_pass(loss, train_input[b+n], train_target[b+n])
+                pred = x_list[-1].max(0)[1].item()
 
-        # Gradient step
+                if train_target[b + n, pred] < 0.5: nb_train_errors = nb_train_errors + 1
+                acc_loss = acc_loss + loss.forward(x_list[-1], train_target[b + n])
 
-        seq.gradient_step(eta)
+                seq.backward_pass(loss, train_input[b + n], train_target[b + n])
+
+            # Gradient step
+
+            seq.gradient_step(eta)
+
+        # Test error
+
+        nb_test_errors = 0
+
+        for n in range(test_input.size(0)):
+            xlist = seq.forward_pass(test_input[n])
+            x2 = xlist[-1]
+
+            pred = x2.max(0)[1].item()
+            if test_target[n, pred] < 0.5: nb_test_errors = nb_test_errors + 1
+
+        print('{:d} acc_train_loss {:.02f} acc_train_error {:.02f}% test_error {:.02f}%'
+              .format(k,
+                      acc_loss,
+                      (100 * nb_train_errors) / train_input.size(0),
+                      (100 * nb_test_errors) / test_input.size(0)))
+
+        acc_loss_list.append(acc_loss)
+        per_train_error_list.append(nb_test_errors / train_input.size(0))
+        per_test_error_list.append(nb_test_errors / test_input.size(0))
 
 
-    # Test error
+    return (acc_loss_list, per_train_error_list, per_test_error_list)
 
-    nb_test_errors = 0
 
-    for n in range(test_input.size(0)):
-        xlist = seq.forward_pass(test_input[n])
-        x2 = xlist[-1]
-
-        pred = x2.max(0)[1].item()
-        if test_target[n, pred] < 0.5: nb_test_errors = nb_test_errors + 1
-
-    print('{:d} acc_train_loss {:.02f} acc_train_error {:.02f}% test_error {:.02f}%'
-          .format(k,
-                  acc_loss,
-                  (100 * nb_train_errors) / train_input.size(0),
-                  (100 * nb_test_errors) / test_input.size(0)))
+run(seq, train_input, test_input, 20, 100)
 
