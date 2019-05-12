@@ -54,8 +54,8 @@ class Net2(nn.Module):
 	def forward(self, x):
 		x = x.view(-1, 1, x.size(2), x.size(3))
 		#print('[x] : {0}'.format(x.size()))
-		xa = x[0:x.size(0)//2,:,:,:]
-		xb = x[x.size(0)//2:,:,:,:]
+		xa = x[0::2,:,:,:]
+		xb = x[1::2,:,:,:]
 		#print('[xa] : {0}'.format(xa.size()))
 		#print('[xb] : {0}'.format(xb.size()))
 		xa = F.relu(F.max_pool2d(self.conv1a(xa), kernel_size=(3,3), stride=(3,3)))
@@ -68,9 +68,10 @@ class Net2(nn.Module):
 		xb = F.relu(self.fc1b(xb.view(xb.size(0),-1)))
 		xa = self.fc2a(xa)
 		xb = self.fc2b(xb)
-		x = torch.cat([xa,xb])
+		x = torch.zeros(xa.size(0),2,self.nb_output)
+		x[:,0,:] = xa
+		x[:,1,:] = xb
 		#print('[x] : {0}'.format(x.size()))
-		x = x.view(-1,2,x.size(1))
 		return x
 
 ################################
@@ -110,6 +111,7 @@ def train_model(model, train_input, train_label, mini_batch_size, criterion, obj
 	        loss = criterion(output, label)
 	        sum_loss[e,0] = sum_loss[e,0] + loss.item()
 	        model.zero_grad()
+	        #print(loss)
 	        loss.backward()
 	        for p in model.parameters():
 	            p.data.sub_(eta * p.grad.data)

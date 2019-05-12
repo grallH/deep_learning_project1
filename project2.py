@@ -149,37 +149,6 @@ def generate_disc_set(nb):
 
     return input, target
 
-
-nb_train_samples = 1000
-
-train_input, train_target = generate_disc_set(nb_train_samples)
-test_input, test_target = generate_disc_set(nb_train_samples)
-
-mean, std = train_input.mean(), train_input.std()
-
-# normalize samples
-train_input.sub_(mean).div_(std)
-test_input.sub_(mean).div_(std)
-
-# fixed learning rate
-eta = 0.00005
-
-# instance fully connected layers, relu and loss
-lin1 = Linear(2, 25)
-lin2 = Linear(25, 25)
-lin3 = Linear(25, 25)
-lin4 = Linear(25, 25)
-lin5 = Linear(25, 2)
-relu = Relu()
-loss = LossMSE()
-
-# model is a list of ordered modules
-model = [lin1, relu, lin2, relu, lin3, relu, lin4, relu, lin5]
-
-# instance sequential class
-seq = Sequential(model)
-
-
 def run(model, train_input, test_input, Nepoch, mini_batch_size):
 
     acc_loss_list = []
@@ -236,6 +205,33 @@ def run(model, train_input, test_input, Nepoch, mini_batch_size):
 
     return (acc_loss_list, per_train_error_list, per_test_error_list)
 
+if __name__ == "__main__":
+	nb_train_samples = 1000
 
-run(seq, train_input, test_input, 20, 100)
+	train_input, train_target = generate_disc_set(nb_train_samples)
+	test_input, test_target = generate_disc_set(nb_train_samples)
 
+	mean, std = train_input.mean(), train_input.std()
+
+	# normalize samples
+	train_input.sub_(mean).div_(std)
+	test_input.sub_(mean).div_(std)
+
+	# fixed learning rate
+	eta = 0.00005
+
+	# instance fully connected layers, relu and loss
+	lin1 = Linear(2, 25)
+	lin2 = Linear(25, 25)
+	lin3 = Linear(25, 25)
+	lin4 = Linear(25, 25)
+	lin5 = Linear(25, 2)
+	relu = Relu()
+	loss = LossMSE()
+
+	# model is a list of ordered modules
+	model = [lin1, relu, lin2, relu, lin3, relu, lin4, relu, lin5]
+
+	# instance sequential class
+	seq = Sequential(model)
+	run(seq, train_input, test_input, 20, 100)
