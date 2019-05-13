@@ -20,26 +20,16 @@ def generate_disc_set(nb):
     target[:, 1] = target1
     return input, target
 
-train_input, train_target = generate_disc_set(1000)
-test_input, test_target = generate_disc_set(1000)
-
-mean, std = train_input.mean(), train_input.std()
-
-train_input.sub_(mean).div_(std)
-test_input.sub_(mean).div_(std)
-
-mini_batch_size = 100
 
 ######################################################################
 
-def train_model(model, train_input, train_target, nb_epochs, mini_batch_size):
+def train_model(model, train_input, train_target, nb_epochs, mini_batch_size, test_input, test_target):
 
     criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), lr = 0.05)
+    optimizer = optim.SGD(model.parameters(), lr = 0.1)
 
     acc_loss_list = []
     per_train_error_list = []
-    per_test_error_list = []
 
 
     for e in range(nb_epochs):
@@ -49,7 +39,12 @@ def train_model(model, train_input, train_target, nb_epochs, mini_batch_size):
             model.zero_grad()
             loss.backward()
             optimizer.step()
-            print(loss)
+            acc_loss_list.append(loss)
+            per_train_error_list.append(compute_nb_errors(model, train_input, train_target) / train_input.size(0))
+
+    test_error = compute_nb_errors(model, test_input, test_target) / test_input.size(0)
+
+    return (acc_loss_list, per_train_error_list, test_error)
 
 ######################################################################
 
@@ -83,14 +78,26 @@ def create_model():
     )
 
 ######################################################################
+if __name__ == "__main__":
 
-model = create_model()
+    train_input, train_target = generate_disc_set(1000)
+    test_input, test_target = generate_disc_set(1000)
 
-train_model(model, train_input, train_target, 100, 100)
+    mean, std = train_input.mean(), train_input.std()
 
-print('{:s} train_error {:.02f}% test_error {:.02f}%'.format(
-    'model',
-    compute_nb_errors(model, train_input, train_target) / train_input.size(0) * 100,
-    compute_nb_errors(model, test_input, test_target) / test_input.size(0) * 100
-)
-)
+    train_input.sub_(mean).div_(std)
+    test_input.sub_(mean).div_(std)
+
+    nb_epoch = 20
+    mini_batch_size = 100
+
+    model = create_model()
+
+    (acc_loss_list, per_train_error_list, test_error) = train_model(model, train_input, train_target, nb_epoch, mini_batch_size, test_input, test_target)
+
+    print('{:s} train_error {:.02f}% test_error {:.02f}%'.format(
+        'model',
+        compute_nb_errors(model, train_input, train_target) / train_input.size(0) * 100,
+        compute_nb_errors(model, test_input, test_target) / test_input.size(0) * 100
+    )
+    )
