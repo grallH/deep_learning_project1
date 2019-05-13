@@ -2,10 +2,9 @@
 
 # 1) Weight sharing:
 
-[Test]
+ipdb> [Test]
 [with weight sharing] : error_rate: mean  = 0.164 std : 0.046
-[without weight sharing] : error_rate: mean  = 0.22 std : 0.03
-
+[without weight sharing] : error_rate: mean  = 0.249 std : 0.045
 # 2) Auxiliary Loss:
 
 [Test]
