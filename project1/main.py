@@ -8,9 +8,6 @@ import my_plot	as mp # Custom file: creat and save plots (errorbars)
 import modelA	      # Custom file: 												To DO : add a small explaination
 import modelB	      # Custom file: 												To DO : add a small explaination
 
-#import project2 as p2
-######################################################################
-
 # Variables
 N = 1; # Number of folds
 e = 25; # Number of epochs for the trainning
@@ -107,40 +104,3 @@ if __name__ == "__main__":
 	print("[Test]\n" + "[all trained] : " + "error_rate: mean  = " + str(round(error_mean[0].item(),3)) + " std : " + str(round(error_std[0].item(),3)))
 	print("[hard coded] : target " + "error_rate: mean  = " + str(round(error_mean[1].item(),3))  + " std : " + str(round(error_std[1].item(),3)))
 	print("[hard coded] : class " + "error_rate: mean  = " + str(round(error_mean[2].item(),3))  + " std : " + str(round(error_std[2].item(),3)))
-#--------------------------------------------------------------------#
-			#Project 2 : Mini deep-learning framework
-#--------------------------------------------------------------------#
-	nb_train_samples = 1000
-	nb_epochs = 20
-	mini_batch_size = 100
-	
-	train_input, train_target = p2.generate_disc_set(nb_train_samples)
-	test_input, test_target = p2.generate_disc_set(nb_train_samples)
-	
-	mean, std = train_input.mean(), train_input.std()
-	
-	# normalize samples
-	train_input.sub_(mean).div_(std)
-	test_input.sub_(mean).div_(std)
-	
-	# fixed learning rate
-	eta = 0.00005
-	
-	# instance fully connected layers, relu and loss
-	lin1 = p2.Linear(2, 25)
-	lin2 = p2.Linear(25, 25)
-	lin3 = p2.Linear(25, 25)
-	lin4 = p2.Linear(25, 25)
-	lin5 = p2.Linear(25, 2)
-	relu = p2.Relu()
-	loss = p2.LossMSE()
-	
-	# model is a list of ordered modules
-	model = [lin1, relu, lin2, relu, lin3, relu, lin4, relu, lin5]
-	
-	# instance sequential class
-	seq = p2.Sequential(model)
-	
-	(acc_loss_list, per_train_error_list, per_test_error_list) = p2.run(seq, train_input, test_input, nb_epochs, mini_batch_size)
-
-
