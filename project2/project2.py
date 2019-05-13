@@ -174,8 +174,9 @@ def run(model, train_input, test_input, Nepoch, mini_batch_size):
 
                 if train_target[b + n, pred] < 0.5: nb_train_errors = nb_train_errors + 1
                 acc_loss = acc_loss + loss.forward(x_list[-1], train_target[b + n])
-
+                seq.zero_grad()
                 seq.backward_pass(loss, train_input[b + n], train_target[b + n])
+
 
             # Gradient step
 
@@ -199,7 +200,7 @@ def run(model, train_input, test_input, Nepoch, mini_batch_size):
                       (100 * nb_test_errors) / test_input.size(0)))
 
         acc_loss_list.append(acc_loss)
-        per_train_error_list.append(nb_test_errors / train_input.size(0))
+        per_train_error_list.append(nb_train_errors / train_input.size(0))
         per_test_error_list.append(nb_test_errors / test_input.size(0))
 
 
@@ -218,7 +219,7 @@ if __name__ == "__main__":
 	test_input.sub_(mean).div_(std)
 
 	# fixed learning rate
-	eta = 0.00005
+	eta = 0.06
 
 	# instance fully connected layers, relu and loss
 	lin1 = Linear(2, 25)
