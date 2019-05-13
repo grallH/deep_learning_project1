@@ -4,8 +4,6 @@ from torch import Tensor
 
 ######################################################################
 
-torch.set_grad_enabled(False)
-
 class Linear :
 
     def __init__(self, ni, no):
@@ -131,10 +129,10 @@ class LossMSE :
 
 
     def forward ( self , v, t):
-        return (v - t).pow(2).sum()
+        return (v - t).pow(2).mean()
 
     def backward ( self , v, t):
-        return 2 * (v - t)
+        return 2 * (v - t) / t.size(1)
 
     def param ( self ) :
         return []
@@ -148,8 +146,9 @@ def generate_disc_set(nb):
     target[:, 1] = target1
 
     return input, target
-
-def run(model, train_input, test_input, Nepoch, mini_batch_size):
+######################################################################
+def run(seq, train_input, test_input, train_target, test_target,loss,eta,Nepoch, mini_batch_size):
+    torch.set_grad_enabled(False)
 
     acc_loss_list = []
     per_train_error_list = []
@@ -165,6 +164,7 @@ def run(model, train_input, test_input, Nepoch, mini_batch_size):
         seq.zero_grad()
 
         for b in range(0, train_input.size(0), mini_batch_size):
+            seq.zero_grad()
 
             for n in range(mini_batch_size):
 
@@ -173,10 +173,10 @@ def run(model, train_input, test_input, Nepoch, mini_batch_size):
                 pred = x_list[-1].max(0)[1].item()
 
                 if train_target[b + n, pred] < 0.5: nb_train_errors = nb_train_errors + 1
+                
                 acc_loss = acc_loss + loss.forward(x_list[-1], train_target[b + n])
-                seq.zero_grad()
+                
                 seq.backward_pass(loss, train_input[b + n], train_target[b + n])
-
 
             # Gradient step
 
@@ -205,7 +205,7 @@ def run(model, train_input, test_input, Nepoch, mini_batch_size):
 
 
     return (acc_loss_list, per_train_error_list, per_test_error_list)
-
+######################################################################
 if __name__ == "__main__":
 	nb_train_samples = 1000
 

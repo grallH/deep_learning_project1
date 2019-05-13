@@ -24,6 +24,7 @@ def generate_disc_set(nb):
 ######################################################################
 
 def train_model(model, train_input, train_target, nb_epochs, mini_batch_size, test_input, test_target):
+    torch.set_grad_enabled(True)
 
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr = 0.1)
@@ -33,22 +34,24 @@ def train_model(model, train_input, train_target, nb_epochs, mini_batch_size, te
 
 
     for e in range(nb_epochs):
+        sum_loss = 0
         for b in range(0, train_input.size(0), mini_batch_size):
             output = model(train_input.narrow(0, b, mini_batch_size))
             loss = criterion(output, train_target.narrow(0, b, mini_batch_size))
             model.zero_grad()
             loss.backward()
             optimizer.step()
-            acc_loss_list.append(loss)
-            per_train_error_list.append(compute_nb_errors(model, train_input, train_target) / train_input.size(0))
+            sum_loss += loss.item()
+        acc_loss_list.append(sum_loss)
+        per_train_error_list.append(compute_nb_errors(model, train_input, train_target,mini_batch_size) / train_input.size(0))
 
-    test_error = compute_nb_errors(model, test_input, test_target) / test_input.size(0)
+    test_error = compute_nb_errors(model, test_input, test_target,mini_batch_size) / test_input.size(0)
 
     return (acc_loss_list, per_train_error_list, test_error)
 
 ######################################################################
 
-def compute_nb_errors(model, data_input, data_target):
+def compute_nb_errors(model, data_input, data_target,mini_batch_size):
 
     nb_data_errors = 0
 
@@ -97,7 +100,7 @@ if __name__ == "__main__":
 
     print('{:s} train_error {:.02f}% test_error {:.02f}%'.format(
         'model',
-        compute_nb_errors(model, train_input, train_target) / train_input.size(0) * 100,
-        compute_nb_errors(model, test_input, test_target) / test_input.size(0) * 100
+        compute_nb_errors(model, train_input, train_target,mini_batch_size) / train_input.size(0) * 100,
+        compute_nb_errors(model, test_input, test_target),mini_batch_size / test_input.size(0) * 100
     )
     )
