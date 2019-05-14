@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 ######################################################################
 # Plot param
 flag_save_figure = False
-folder_name = "picture/"
+folder_name = "Figures/"
 xLabel = {"ws_loss" : "Different epochs" , "ws_train" : "Different epochs", "ax_loss" : "Different epochs" , "ax_train" : "Different epochs", "ip_loss" : "Different epochs" , "ip_train" : "Different epochs"}
 yLabel = {"ws_loss" : "MSELoss " , "ws_train" : "Error rate","ax_loss" : "CrossEntropyLoss " , "ax_train" : "Error rate","ip_loss" : "Loss " , "ip_train" : "Error rate"}
 legend = {"ws" : ("With weight sharing", "Without weight sharing"), "ax" : ("Without auxiliary", "With auxiliary : target", "With auxiliary : class", "With auxiliary : target + class"), "ip" : ("all trained", "hard coded : target", "hard coded : class")}

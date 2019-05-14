@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 ######################################################################
 # Plot param
 flag_save_figure = False
-folder_name = "picture/"
+folder_name = "Figures/"
 xLabel = {"p2_loss" : "Different epochs" , "p2_train" : "Different epochs", "p2_test" : "Different epochs"}
 yLabel = {"p2_loss" : "Loss " , "p2_train" : "Error rate","p2_test" : "Error rate"}
 legend = {"p2" : ("Custom framework","PyTorch framework")}
