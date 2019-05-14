@@ -16,8 +16,8 @@ if __name__ == "__main__":
    nb_train_samples = 1000
    e = 20                       # Number of epochs
    mini_batch_size = 100
-   eta = 0.01                   # fixed learning rate
-   N = 3                        # Number of fold
+   eta =  0.05                   # fixed learning rate
+   N = 10                        # Number of fold
    
    # Array for plots
    p2_train_error_rate = torch.zeros(N,e,2)
@@ -53,15 +53,16 @@ if __name__ == "__main__":
            p2_loss[n,i,0] = e_.item()
            p2_train_error_rate[n,i,0] = per_train_error_list[i]
            p2_test_error_rate[n,i,0] = per_test_error_list[i]
+                   
        model1 = p2_pytorch.create_model()
-       
+      
        acc_loss_list, per_train_error_list, per_test_error_list = p2_pytorch.train_model(model1, train_input, train_target, e, mini_batch_size, test_input, test_target)   
        for i,e_ in enumerate(acc_loss_list):
            p2_loss[n,i,1] = e_
            p2_train_error_rate[n,i,1] = per_train_error_list[i]
-           #p2_test_error_rate[n,i,1] = per_test_error_list[i]
+           p2_test_error_rate[n,i,1] = per_test_error_list[i]
 
    mp.plot(e,p2_train_error_rate, "p2","train")
-   mp.plot(e,p2_test_error_rate, "p2","loss")
-   mp.plot(e,p2_loss, "p2","test")
+   mp.plot(e,p2_test_error_rate, "p2","test")
+   mp.plot(e,p2_loss, "p2","loss")
        

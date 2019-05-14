@@ -30,10 +30,12 @@ def train_model(model, train_input, train_target, nb_epochs, mini_batch_size, te
     optimizer = optim.SGD(model.parameters(), lr = 0.1)
 
     acc_loss_list = []
+    test_error_list = []
     per_train_error_list = []
 
-
     for e in range(nb_epochs):
+        test_error_list.append(compute_nb_errors(model, test_input, test_target,mini_batch_size) / test_input.size(0))
+
         sum_loss = 0
         for b in range(0, train_input.size(0), mini_batch_size):
             output = model(train_input.narrow(0, b, mini_batch_size))
@@ -41,13 +43,12 @@ def train_model(model, train_input, train_target, nb_epochs, mini_batch_size, te
             model.zero_grad()
             loss.backward()
             optimizer.step()
-            sum_loss += loss.item()
-        acc_loss_list.append(sum_loss)
+            sum_loss += loss.item()  * mini_batch_size
+        acc_loss_list.append(sum_loss/test_input.size(0))
         per_train_error_list.append(compute_nb_errors(model, train_input, train_target,mini_batch_size) / train_input.size(0))
+        
 
-    test_error = compute_nb_errors(model, test_input, test_target,mini_batch_size) / test_input.size(0)
-
-    return (acc_loss_list, per_train_error_list, test_error)
+    return (acc_loss_list, per_train_error_list, test_error_list)
 
 ######################################################################
 
@@ -61,7 +62,6 @@ def compute_nb_errors(model, data_input, data_target,mini_batch_size):
         for k in range(mini_batch_size):
             if data_target[b + k, 1] != predicted_classes[k].float():
                 nb_data_errors = nb_data_errors + 1
-
     return nb_data_errors
 
 ######################################################################
@@ -96,11 +96,11 @@ if __name__ == "__main__":
 
     model = create_model()
 
-    (acc_loss_list, per_train_error_list, test_error) = train_model(model, train_input, train_target, nb_epoch, mini_batch_size, test_input, test_target)
+    (acc_loss_list, per_train_error_list, test_error_list) = train_model(model, train_input, train_target, nb_epoch, mini_batch_size, test_input, test_target)
 
     print('{:s} train_error {:.02f}% test_error {:.02f}%'.format(
         'model',
         compute_nb_errors(model, train_input, train_target,mini_batch_size) / train_input.size(0) * 100,
-        compute_nb_errors(model, test_input, test_target),mini_batch_size / test_input.size(0) * 100
+        compute_nb_errors(model, test_input, test_target,mini_batch_size) / test_input.size(0) * 100
     )
     )
