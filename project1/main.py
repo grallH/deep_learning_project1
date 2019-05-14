@@ -14,7 +14,7 @@ e = 25; # Number of epochs for the trainning
 
 if __name__ == "__main__":
 #--------------------------------------------------------------------#
-	#Project 1 : Classiffcation, weight sharing, auxiliary losses
+	#Project 1 : Classification, weight sharing, auxiliary losses
 #--------------------------------------------------------------------#
 	# 1) Weight sharing :
 	ws_train_error_rate = torch.zeros(N,e,2)

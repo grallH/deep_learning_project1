@@ -4,8 +4,6 @@ from torch import Tensor
 
 ######################################################################
 
-torch.set_grad_enabled(False)
-
 class Linear :
 
     def __init__(self, ni, no):
@@ -44,7 +42,8 @@ class Sigma :
         return x.exp()/(1 + x.exp())
 
     def backward ( self , x, dl_dx):
-        return (x.exp()/(1 + x.exp()))*(1 - x.exp()/(1 + x.exp()))*dl_dx
+        return self.forward(x) * (1-self.forward(x))*dl_dx
+        #return (x.exp()/(1 + x.exp()))*(1 - x.exp()/(1 + x.exp()))*dl_dx
 
     def gradient_step(self, eta):
         return
@@ -61,7 +60,8 @@ class Tanh :
         return x.tanh()
 
     def backward ( self , x, dl_dx):
-        return (4 * (x.exp() + x.mul(-1).exp()).pow(-2))*dl_dx
+        return (1-self.forward(x).pow(2)) * dl_dx
+        #return (4 * (x.exp() + x.mul(-1).exp()).pow(-2))*dl_dx
 
     def gradient_step(self, eta):
         return
@@ -134,7 +134,7 @@ class LossMSE :
         return (v - t).pow(2).sum()
 
     def backward ( self , v, t):
-        return 2 * (v - t)
+        return 2 * (v - t) 
 
     def param ( self ) :
         return []
@@ -148,8 +148,9 @@ def generate_disc_set(nb):
     target[:, 1] = target1
 
     return input, target
-
-def run(model, train_input, test_input, Nepoch, mini_batch_size):
+######################################################################
+def run(seq, train_input, test_input, train_target, test_target,loss,eta,Nepoch, mini_batch_size):
+    torch.set_grad_enabled(False)
 
     acc_loss_list = []
     per_train_error_list = []
@@ -157,54 +158,46 @@ def run(model, train_input, test_input, Nepoch, mini_batch_size):
 
     for k in range(Nepoch):
 
-        # Back-prop
-
-        acc_loss = 0
+        # Compute error
+        nb_test_errors = 0
         nb_train_errors = 0
 
-        seq.zero_grad()
-
+        for n in range(test_input.size(0)):
+            # Test
+            xlist = seq.forward_pass(test_input[n])
+            pred = xlist[-1].max(0)[1].item()
+            if test_target[n, pred] < 0.5: nb_test_errors = nb_test_errors + 1
+            # Train 
+            xlist = seq.forward_pass(train_input[n])
+            pred = xlist[-1].max(0)[1].item()
+            if train_target[n, pred] < 0.5: nb_train_errors = nb_train_errors + 1
+        
+        acc_loss = 0
+        # Back-prop, train loss and train error
         for b in range(0, train_input.size(0), mini_batch_size):
-
+            seq.zero_grad()
+            
             for n in range(mini_batch_size):
-
                 x_list = seq.forward_pass(train_input[b + n])
-
-                pred = x_list[-1].max(0)[1].item()
-
-                if train_target[b + n, pred] < 0.5: nb_train_errors = nb_train_errors + 1
                 acc_loss = acc_loss + loss.forward(x_list[-1], train_target[b + n])
-
                 seq.backward_pass(loss, train_input[b + n], train_target[b + n])
 
             # Gradient step
-
-            seq.gradient_step(eta)
-
-        # Test error
-
-        nb_test_errors = 0
-
-        for n in range(test_input.size(0)):
-            xlist = seq.forward_pass(test_input[n])
-            x2 = xlist[-1]
-
-            pred = x2.max(0)[1].item()
-            if test_target[n, pred] < 0.5: nb_test_errors = nb_test_errors + 1
+            seq.gradient_step(eta/mini_batch_size)
 
         print('{:d} acc_train_loss {:.02f} acc_train_error {:.02f}% test_error {:.02f}%'
               .format(k,
-                      acc_loss,
+                      acc_loss/train_input.size(0),
                       (100 * nb_train_errors) / train_input.size(0),
                       (100 * nb_test_errors) / test_input.size(0)))
 
-        acc_loss_list.append(acc_loss)
-        per_train_error_list.append(nb_test_errors / train_input.size(0))
+        acc_loss_list.append(acc_loss/train_input.size(0))
+        per_train_error_list.append(nb_train_errors / train_input.size(0))
         per_test_error_list.append(nb_test_errors / test_input.size(0))
 
 
     return (acc_loss_list, per_train_error_list, per_test_error_list)
-
+######################################################################
 if __name__ == "__main__":
 	nb_train_samples = 1000
 
@@ -218,7 +211,7 @@ if __name__ == "__main__":
 	test_input.sub_(mean).div_(std)
 
 	# fixed learning rate
-	eta = 0.00005
+	eta = 0.05
 
 	# instance fully connected layers, relu and loss
 	lin1 = Linear(2, 25)
