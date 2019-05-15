@@ -38,3 +38,4 @@ def plot(e,data,type1, type2):
 	plt.xlabel(x_label,labelpad = 20, **label_font)
 	if(flag_save_figure):
 		plt.savefig(folder_name + my_name + ".pdf")
+#def plot_data(input,label_true,label_output):

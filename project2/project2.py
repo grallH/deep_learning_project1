@@ -131,10 +131,10 @@ class LossMSE :
 
 
     def forward ( self , v, t):
-        return (v - t).pow(2).sum()
+        return (v - t).pow(2).mean(0)
 
     def backward ( self , v, t):
-        return 2 * (v - t) 
+        return 2 * (v - t) / v.size(0)
 
     def param ( self ) :
         return []
