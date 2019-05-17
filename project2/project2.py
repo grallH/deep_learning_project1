@@ -141,7 +141,8 @@ class LossMSE :
 
 
 def generate_disc_set(nb):
-    input = Tensor(nb, 2).uniform_(-1, 1)
+#    input = Tensor(nb, 2).uniform_(-1, 1)
+    input = Tensor(nb,2).uniform_(-1,1)
     target1 = input.pow(2).sum(1).sub(2 / math.pi).sign().add(1).div(2).long()
     target = torch.empty(input.size())
     target[:, 0] = 1 - target1
@@ -155,23 +156,31 @@ def run(seq, train_input, test_input, train_target, test_target,loss,eta,Nepoch,
     acc_loss_list = []
     per_train_error_list = []
     per_test_error_list = []
+    output = test_input.new_zeros((test_input.size()[0],test_input.size()[1],2))
 
     for k in range(Nepoch):
 
         # Compute error
         nb_test_errors = 0
         nb_train_errors = 0
-
         for n in range(test_input.size(0)):
             # Test
             xlist = seq.forward_pass(test_input[n])
             pred = xlist[-1].max(0)[1].item()
             if test_target[n, pred] < 0.5: nb_test_errors = nb_test_errors + 1
+            if(k == 0):
+                output[n,pred,0] = 1.
+            if(k == Nepoch-1):
+                output[n,pred,1] = 1.
             # Train 
             xlist = seq.forward_pass(train_input[n])
             pred = xlist[-1].max(0)[1].item()
             if train_target[n, pred] < 0.5: nb_train_errors = nb_train_errors + 1
-        
+                #output[n,:] = xlist[-1]
+#        if(k == Nepoch-1):
+#            ind = output.argmax(dim = 1)
+#            output.zero_()[torch.arange(0,output.size(0)).long(),ind] = 1.
+
         acc_loss = 0
         # Back-prop, train loss and train error
         for b in range(0, train_input.size(0), mini_batch_size):
@@ -196,35 +205,38 @@ def run(seq, train_input, test_input, train_target, test_target,loss,eta,Nepoch,
         per_test_error_list.append(nb_test_errors / test_input.size(0))
 
 
-    return (acc_loss_list, per_train_error_list, per_test_error_list)
+    return (acc_loss_list, per_train_error_list, per_test_error_list,output)
 ######################################################################
 if __name__ == "__main__":
-	nb_train_samples = 1000
-
-	train_input, train_target = generate_disc_set(nb_train_samples)
-	test_input, test_target = generate_disc_set(nb_train_samples)
-
-	mean, std = train_input.mean(), train_input.std()
+    nb_train_samples = 1000
+    
+    train_input, train_target = generate_disc_set(nb_train_samples)
+    test_input, test_target = generate_disc_set(nb_train_samples)
+    
+    mean, std = train_input.mean(), train_input.std()
 
 	# normalize samples
-	train_input.sub_(mean).div_(std)
-	test_input.sub_(mean).div_(std)
+    train_input.sub_(mean).div_(std)
+    test_input.sub_(mean).div_(std)
 
 	# fixed learning rate
-	eta = 0.05
+    eta = 0.05
+    loss = LossMSE()
+    Nepoch = 20
+    mini_batch_size = 100
 
 	# instance fully connected layers, relu and loss
-	lin1 = Linear(2, 25)
-	lin2 = Linear(25, 25)
-	lin3 = Linear(25, 25)
-	lin4 = Linear(25, 25)
-	lin5 = Linear(25, 2)
-	relu = Relu()
-	loss = LossMSE()
-
-	# model is a list of ordered modules
-	model = [lin1, relu, lin2, relu, lin3, relu, lin4, relu, lin5]
-
-	# instance sequential class
-	seq = Sequential(model)
-	run(seq, train_input, test_input, 20, 100)
+    lin1 = Linear(2, 25)
+    lin2 = Linear(25, 25)
+    lin3 = Linear(25, 25)
+    lin4 = Linear(25, 25)
+    lin5 = Linear(25, 2)
+    relu = Relu()
+    loss = LossMSE()
+    
+    	# model is a list of ordered modules
+    model = [lin1, relu, lin2, relu, lin3, relu, lin4, relu, lin5]
+    
+    	# instance sequential class
+    seq = Sequential(model)
+    run(seq, train_input, test_input, 20, 100,loss, eta, Nepoch,mini_batch_size)

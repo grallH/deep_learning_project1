@@ -7,9 +7,7 @@ import torch
 import my_plot	as mp # Custom file: creat and save plots (errorbars)
 import project2 as p2
 import project2_withAutoGrad as p2_pytorch
-import cProfile, pstats,io
-#from pstats import SortKey
-
+#import cProfile, pstats,io
 
 if __name__ == "__main__":
 #--------------------------------------------------------------------#
@@ -17,7 +15,7 @@ if __name__ == "__main__":
 #--------------------------------------------------------------------#
    # Parameters:
    nb_train_samples = 1000
-   e = 1                       # Number of epochs
+   e = 5                      # Number of epochs
    mini_batch_size = 100
    eta =  0.05                   # fixed learning rate
    N = 1                      # Number of fold
@@ -31,16 +29,15 @@ if __name__ == "__main__":
 
    for n in range(0,N):
        print(n)
-       pr.enable()
+#       pr.enable()
        train_input, train_target = p2.generate_disc_set(nb_train_samples)
        test_input, test_target = p2.generate_disc_set(nb_train_samples)
-#       mp.plot_data(train_input, train_target,"data")
        mean, std = train_input.mean(), train_input.std()
     
     	# normalize samples
        train_input.sub_(mean).div_(std)
        test_input.sub_(mean).div_(std)
-    
+
     	# instance fully connected layers, relu and loss
        lin1 = p2.Linear(2, 25)
        lin2 = p2.Linear(25, 25)
@@ -55,25 +52,30 @@ if __name__ == "__main__":
 
     	# instance sequential class
        seq = p2.Sequential(model)
-       acc_loss_list, per_train_error_list, per_test_error_list = p2.run(seq, train_input, test_input,train_target, test_target ,loss,eta,e, mini_batch_size)
+       acc_loss_list, per_train_error_list, per_test_error_list,output = p2.run(seq, train_input, test_input,train_target, test_target ,loss,eta,e, mini_batch_size)
+       if(n == 0):
+           mp.plot_data(test_input, test_target,"data")
+           mp.plot_data(test_input, output[:,:,0],"data_init")
+           mp.plot_data(test_input, output[:,:,1],"data_out")
+           
        for i,e_ in enumerate(acc_loss_list):
            p2_loss[n,i,0] = e_.item()
            p2_train_error_rate[n,i,0] = per_train_error_list[i]
            p2_test_error_rate[n,i,0] = per_test_error_list[i]
-
-       pr.disable()
-       s = io.StringIO()
-       ps = pstats.Stats(pr, stream=s)
-       ps.print_stats()
-       print(s.getvalue())
-#       
-#       model1 = p2_pytorch.create_model()
-#      
-#       acc_loss_list, per_train_error_list, per_test_error_list = p2_pytorch.train_model(model1, train_input, train_target, e, mini_batch_size, eta, test_input, test_target)   
-#       for i,e_ in enumerate(acc_loss_list):
-#           p2_loss[n,i,1] = e_
-#           p2_train_error_rate[n,i,1] = per_train_error_list[i]
-#           p2_test_error_rate[n,i,1] = per_test_error_list[i]
+           
+#        pr.disable()
+#       s = io.StringIO()
+#       ps = pstats.Stats(pr, stream=s)
+#       ps.print_stats()
+#       print(s.getvalue())
+#
+       model1 = p2_pytorch.create_model()
+      
+       acc_loss_list, per_train_error_list, per_test_error_list = p2_pytorch.train_model(model1, train_input, train_target, e, mini_batch_size, eta, test_input, test_target)   
+       for i,e_ in enumerate(acc_loss_list):
+           p2_loss[n,i,1] = e_
+           p2_train_error_rate[n,i,1] = per_train_error_list[i]
+           p2_test_error_rate[n,i,1] = per_test_error_list[i]
 
    mp.plot(e,p2_train_error_rate, "p2","train")
    mp.plot(e,p2_test_error_rate, "p2","test")
