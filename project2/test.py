@@ -69,7 +69,22 @@ if __name__ == "__main__":
             p2_train_error_rate[n,i,1] = per_train_error_list[i]
             p2_test_error_rate[n,i,1] = per_test_error_list[i]
 
+   print('average_final_loss_custom {:.02f} average_final_train_error_rate_custom '
+         '{:.02f} average_final_test_error_rate_custom {:.02f}'
+              .format(
+                      p2_loss[:,-1,0].mean(0).numpy(),
+                      p2_train_error_rate[:,-1,0].mean(0).numpy(),
+                      p2_test_error_rate[:,-1,0].mean(0).numpy()))
+
+   print('average_final_loss_pytorch {:.02f} average_final_train_error_rate_pytorch'
+         '{:.02f} average_final_test_error_rate_pytorch{:.02f}'
+              .format(
+                      p2_loss[:,-1,1].mean(0).numpy(),
+                      p2_train_error_rate[:,-1,1].mean(0).numpy(),
+                      p2_test_error_rate[:,-1,1].mean(0).numpy()))
+
    mp.plot(e,p2_train_error_rate, "p2","train")
    mp.plot(e,p2_test_error_rate, "p2","test")
    mp.plot(e,p2_loss, "p2","loss")
-       
+
+

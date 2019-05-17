@@ -9,7 +9,7 @@ import modelA	      # Custom file: 												To DO : add a small explaination
 import modelB	      # Custom file: 												To DO : add a small explaination
 
 # Variables
-N = 1; # Number of folds
+N = 2; # Number of folds
 e = 25; # Number of epochs for the trainning
 
 if __name__ == "__main__":
