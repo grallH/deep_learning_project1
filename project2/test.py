@@ -15,10 +15,10 @@ if __name__ == "__main__":
 #--------------------------------------------------------------------#
    # Parameters:
    nb_train_samples = 1000
-   e = 5                      # Number of epochs
+   e = 20                      # Number of epochs
    mini_batch_size = 100
-   eta =  0.05                   # fixed learning rate
-   N = 1                      # Number of fold
+   eta =  0.1                   # fixed learning rate
+   N = 10                      # Number of fold
    
    # Array for plots
    p2_train_error_rate = torch.zeros(N,e,2)
@@ -30,6 +30,7 @@ if __name__ == "__main__":
    for n in range(0,N):
        print(n)
 #       pr.enable()
+
        train_input, train_target = p2.generate_disc_set(nb_train_samples)
        test_input, test_target = p2.generate_disc_set(nb_train_samples)
        mean, std = train_input.mean(), train_input.std()
@@ -69,6 +70,7 @@ if __name__ == "__main__":
 #       ps.print_stats()
 #       print(s.getvalue())
 #
+
        model1 = p2_pytorch.create_model()
       
        acc_loss_list, per_train_error_list, per_test_error_list = p2_pytorch.train_model(model1, train_input, train_target, e, mini_batch_size, eta, test_input, test_target)   
@@ -80,4 +82,11 @@ if __name__ == "__main__":
    mp.plot(e,p2_train_error_rate, "p2","train")
    mp.plot(e,p2_test_error_rate, "p2","test")
    mp.plot(e,p2_loss, "p2","loss")
+   
+   # Final performances
+   print('Custom Framework\n')
+   print('[Error_rate] : \nTrain : Mean : {:.02f}% : STD : {:.02f}% : \nTest : Mean : {:.02f}% : STD : {:.02f}%\n'.format(p2_train_error_rate[:,-1,0].mean()*100,p2_train_error_rate[:,-1,0].std()*100,p2_test_error_rate[:,-1,0].mean()*100,p2_test_error_rate[:,-1,0].mean()*100))
+   print('Pytorch Framework\n')
+   print('[Error_rate] : \nTrain : Mean : {:.02f}% : STD : {:.02f}% : \nTest : Mean : {:.02f}% : STD : {:.02f}%\n'
+              .format(p2_train_error_rate[:,-1,1].mean()*100,p2_train_error_rate[:,-1,1].std()*100,p2_test_error_rate[:,-1,1].mean()*100,p2_test_error_rate[:,-1,1].mean()*100))
        

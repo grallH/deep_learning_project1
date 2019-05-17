@@ -23,7 +23,7 @@ def generate_disc_set(nb):
 
 ######################################################################
 
-def train_model(model, train_input, train_target, nb_epochs, mini_batch_size,eta, test_input, test_target):
+def train_model(model, train_input, train_target, nb_epochs, mini_batch_size, eta, test_input, test_target):
     torch.set_grad_enabled(True)
 
     criterion = nn.MSELoss()
@@ -93,10 +93,10 @@ if __name__ == "__main__":
 
     nb_epoch = 20
     mini_batch_size = 100
-    eta = 0.05
+    eta = 0.1
     model = create_model()
 
-    (acc_loss_list, per_train_error_list, test_error_list) = train_model(model, train_input, train_target, nb_epoch, mini_batch_size,eta , test_input, test_target)
+    (acc_loss_list, per_train_error_list, test_error_list) = train_model(model, train_input, train_target, nb_epoch, mini_batch_size, eta, test_input, test_target)
 
     print('{:s} train_error {:.02f}% test_error {:.02f}%'.format(
         'model',

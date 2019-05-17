@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 ######################################################################
 # Plot param
-flag_save_figure = True
-folder_name = ""
+flag_save_figure = False
+folder_name = "Figures/"
 xLabel = {"p2_loss" : "Different epochs" , "p2_train" : "Different epochs","p2_test" : "Different epochs","data" : "x1", "data_out" : "x1","data_init" : "x1"}
 yLabel = {"p2_loss" : "Loss " , "p2_train" : "Error rate","p2_test" : "Error rate","data" : "x2", "data_out" : "x2","data_init" : "x2"}
 legend = {"p2" : ("Custom framework","PyTorch framework"), "data": ("Class 1","Class 0"), "data_out" : ("Predicted class 1","Predicted class 0"),"data_init" : ("Predicted class 1","Predicted class 0")}
 title = {"test" : "Error rate : Test Vs Epochs", "train" : "Error rate : Train Vs Epochs", "loss": "Loss : Train Vs Epochs","data" : "Data Set : True labels", "data_out" : "Data Set : Predicted labels after 20 epochs", "data_init" : "Data Set : Predicted labels initially"}
+
 title_font = {'fontname':'Arial', 'size':'20', 'color':'black', 'weight':'normal',
               'verticalalignment':'bottom'}
 label_font = {'fontname':'Arial', 'size':'14', 'color':'black', 'weight':'normal',
@@ -60,7 +61,7 @@ def plot_data(x,label,type1):
     plt.axis('equal')
     if(flag_save_figure):
         plt.savefig(folder_name + my_name + ".pdf")
-        
+
 def plot_circle():
     r = np.sqrt(1/(2*np.pi))
     t = np.arange(0,2*np.pi, 0.01)

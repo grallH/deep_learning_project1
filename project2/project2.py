@@ -151,6 +151,7 @@ def generate_disc_set(nb):
     return input, target
 ######################################################################
 def run(seq, train_input, test_input, train_target, test_target,loss,eta,Nepoch, mini_batch_size):
+    # Disable the gradient
     torch.set_grad_enabled(False)
 
     acc_loss_list = []
