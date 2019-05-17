@@ -18,7 +18,7 @@ if __name__ == "__main__":
    e = 20                      # Number of epochs
    mini_batch_size = 100
    eta =  0.1                   # fixed learning rate
-   N = 2                      # Number of fold
+   N = 10                      # Number of fold
    
    # Array for plots
    p2_train_error_rate = torch.zeros(N,e,2)
