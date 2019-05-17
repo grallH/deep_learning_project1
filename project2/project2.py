@@ -211,7 +211,7 @@ if __name__ == "__main__":
 	test_input.sub_(mean).div_(std)
 
 	# fixed learning rate
-	eta = 0.05
+	eta = 0.1
 
 	# instance fully connected layers, relu and loss
 	lin1 = Linear(2, 25)
