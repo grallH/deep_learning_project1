@@ -85,8 +85,8 @@ if __name__ == "__main__":
 
    # Final performances
    print('Custom Framework\n')
-   print('[Error_rate] : \nTrain : Mean : {:.02f}% : STD : {:.02f}% : \nTest : Mean : {:.02f}% : STD : {:.02f}%\n'.format(p2_train_error_rate[:,-1,0].mean()*100,p2_train_error_rate[:,-1,0].std()*100,p2_test_error_rate[:,-1,0].mean()*100,p2_test_error_rate[:,-1,0].mean()*100))
+   print('[Error_rate] : \nTrain : Mean : {:.02f}% : STD : {:.02f}% : \nTest : Mean : {:.02f}% : STD : {:.02f}%\n'.format(p2_train_error_rate[:,-1,0].mean()*100,p2_train_error_rate[:,-1,0].std()*100,p2_test_error_rate[:,-1,0].mean()*100,p2_test_error_rate[:,-1,0].std()*100))
    print('Pytorch Framework\n')
    print('[Error_rate] : \nTrain : Mean : {:.02f}% : STD : {:.02f}% : \nTest : Mean : {:.02f}% : STD : {:.02f}%\n'
-              .format(p2_train_error_rate[:,-1,1].mean()*100,p2_train_error_rate[:,-1,1].std()*100,p2_test_error_rate[:,-1,1].mean()*100,p2_test_error_rate[:,-1,1].mean()*100))
+              .format(p2_train_error_rate[:,-1,1].mean()*100,p2_train_error_rate[:,-1,1].std()*100,p2_test_error_rate[:,-1,1].mean()*100,p2_test_error_rate[:,-1,1].std()*100))
        
